@@ -19,7 +19,7 @@
     <RepositoryUrl>https://github.com/mfdlabs/nuget</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
 
-    <VersionPrefix>3.17.0</VersionPrefix>
+    <VersionPrefix>$([System.DateTime]::Now.ToString(`yyyy.MM.dd`))</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup Label="TestsProperties" Condition="$(MSBuildProjectName.Contains('.Tests'))">
