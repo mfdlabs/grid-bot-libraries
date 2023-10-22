@@ -70,7 +70,8 @@ jobs:
 
       # Finish
       - name: Upload build artifacts
-        if: always()
+        if: ${{ github.event_name == 'push' }}
+        continue-on-error: true
         uses: actions/upload-artifact@v3
         with:
           retention-days: 1
