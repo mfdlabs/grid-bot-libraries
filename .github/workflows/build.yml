@@ -70,14 +70,19 @@ jobs:
 
       # Finish
       - name: Upload build artifacts
-        if: ${{ always() }}
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           retention-days: 1
           name: nuget-packages
           path: |
-            dist/*.nupkg
+            /_/_work/${{ github.repository }}/${{ github.sha }}/dist/*.nupkg
 
+      - name: Cleanup
+        if: always()
+        continue-on-error: true
+        run: |
+          rm -rf /_/_work/${{ github.repository }}/${{ github.sha }}
   # Upload to NuGet
   upload:
     runs-on: "local-infrastructure"
