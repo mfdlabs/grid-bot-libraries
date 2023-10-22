@@ -13,7 +13,7 @@ env:
 
 jobs:
   build:
-    runs-on: "ubuntu-latest"
+    runs-on: "local-infrastructure"
 
     env:
       VersionSuffix: ${{ github.event.pull_request.number && format('pr-{0}-{1}-{2}-preview', github.event.pull_request.number, github.run_number, github.run_attempt) || '' }}
@@ -24,6 +24,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Move to Checkout Path
+        run: |
+          mkdir -p /_/_work/${{ github.repository }}/${{ github.sha }}
+          mv * /_/_work/${{ github.repository }}/${{ github.sha }}
+
       - name: Setup .NET 6
         uses: actions/setup-dotnet@v3
         with:
@@ -31,11 +36,13 @@ jobs:
 
       # Build
       - name: Restore NuGet Packages
+        working-directory: /_/_work/${{ github.repository }}/${{ github.sha }}
         run: >-
           dotnet restore
           ${{ env.SOLUTION_FILE_NAME }}
 
       - name: Build Solution
+        working-directory: /_/_work/${{ github.repository }}/${{ github.sha }}
         run: >-
           dotnet build
           ${{ env.SOLUTION_FILE_NAME }}
@@ -43,6 +50,7 @@ jobs:
           -c Release
 
       - name: Run Tests
+        working-directory: /_/_work/${{ github.repository }}/${{ github.sha }}
         run: >-
           dotnet test
           ${{ env.SOLUTION_FILE_NAME }}
@@ -51,6 +59,7 @@ jobs:
           -c Release
 
       - name: Pack NuGet Packages
+        working-directory: /_/_work/${{ github.repository }}/${{ github.sha }}
         run: >-
           dotnet pack
           ${{ env.SOLUTION_FILE_NAME }}
@@ -97,5 +106,5 @@ jobs:
           dotnet nuget push
           dist/*.nupkg
           --skip-duplicate
-          --source ${{ secrets.NUGET_SOURCE }}
+          --source ${{ vars.NUGET_SOURCE }}
           --api-key ${{ secrets.NUGET_API_KEY }}
