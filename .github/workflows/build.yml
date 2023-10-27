@@ -3,10 +3,20 @@ name: "Build + Publish NuGet Package"
 on:
   pull_request:
     types: [opened, synchronize]
+    paths:
+      - "src/**"
+      - ".github/workflows/**"
+      - "lib.sln"
+      - "nuget.config"
 
   push:
     branches:
       - master
+    paths:
+      - "src/**"
+      - ".github/workflows/**"
+      - "lib.sln"
+      - "nuget.config"
 
 env:
   DOTNET_NOLOGO: true
