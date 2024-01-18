@@ -77,6 +77,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "logging", "logging", "{BF48
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logging", "src\logging\logging\Logging.csproj", "{6DAF1F7A-F9CB-4E68-9EBF-75D69EC533A8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thumbnails.Client", "src\clients\thumbnails-client\Thumbnails.Client.csproj", "{3F0A3C39-1856-4AF3-BD98-D5550681FDFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -175,6 +177,10 @@ Global
 		{6DAF1F7A-F9CB-4E68-9EBF-75D69EC533A8}.Debug|Any CPU.Build.0 = debug|Any CPU
 		{6DAF1F7A-F9CB-4E68-9EBF-75D69EC533A8}.Release|Any CPU.ActiveCfg = release|Any CPU
 		{6DAF1F7A-F9CB-4E68-9EBF-75D69EC533A8}.Release|Any CPU.Build.0 = release|Any CPU
+		{3F0A3C39-1856-4AF3-BD98-D5550681FDFF}.Debug|Any CPU.ActiveCfg = debug|Any CPU
+		{3F0A3C39-1856-4AF3-BD98-D5550681FDFF}.Debug|Any CPU.Build.0 = debug|Any CPU
+		{3F0A3C39-1856-4AF3-BD98-D5550681FDFF}.Release|Any CPU.ActiveCfg = release|Any CPU
+		{3F0A3C39-1856-4AF3-BD98-D5550681FDFF}.Release|Any CPU.Build.0 = release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -216,5 +222,6 @@ Global
 		{10B6DA4B-FFD7-43D8-834A-DA392B642A94} = {25530CCF-1157-4580-B807-2F6AC80908DA}
 		{BF4849AC-1419-4140-9E8C-B64605EB559D} = {3C4CEDE1-4F42-4FCE-83DF-02F29E64C9E2}
 		{6DAF1F7A-F9CB-4E68-9EBF-75D69EC533A8} = {BF4849AC-1419-4140-9E8C-B64605EB559D}
+		{3F0A3C39-1856-4AF3-BD98-D5550681FDFF} = {6EFD9C7E-FE35-4D59-A0EE-CF031F2E0FE3}
 	EndGlobalSection
 EndGlobal
