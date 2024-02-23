@@ -30,36 +30,6 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
     /// <param name="getWindowPeriod">The window of time to consider counts towards the limit</param>
     /// <param name="isEnabled">Whether or not the floodchecker is enabled. If false it will never report itself as flooded</param>
     /// <param name="logger">The <see cref="ILogger"/></param>
-    public RedisApproximateRollingWindowFloodChecker(
-        string category, 
-        string key, 
-        Func<int> getLimit,
-        Func<TimeSpan> getWindowPeriod, 
-        Func<bool> isEnabled,
-        ILogger logger
-    ) 
-        : this(
-              category, 
-              key,
-              getLimit,
-              getWindowPeriod,
-              isEnabled, 
-              logger, 
-              () => false,
-              null
-            )
-    {
-    }
-
-    /// <summary>
-    /// Constructs a new Redis-backed Floodchecker
-    /// </summary>
-    /// <param name="category">A category for the floodchecker. This will be used for plotting floodchecker metrics and should be broad</param>
-    /// <param name="key">The key for the individual action you wish to flood check, which may be much more specific than the category</param>
-    /// <param name="getLimit">The threshold before a checker becomes flooded</param>
-    /// <param name="getWindowPeriod">The window of time to consider counts towards the limit</param>
-    /// <param name="isEnabled">Whether or not the floodchecker is enabled. If false it will never report itself as flooded</param>
-    /// <param name="logger">The <see cref="ILogger"/></param>
     /// <param name="redisClient">The <see cref="IRedisClient"/></param>
     public RedisApproximateRollingWindowFloodChecker(
         string category,
@@ -79,32 +49,6 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
               logger,
               () => false,
               redisClient,
-              null
-            )
-    {
-    }
-
-    internal RedisApproximateRollingWindowFloodChecker(
-        string category, 
-        string key,
-        Func<int> getLimit,
-        Func<TimeSpan> getWindowPeriod,
-        Func<bool> isEnabled, 
-        ILogger logger,
-        Func<bool> recordGlobalFloodedEvents, 
-        IGlobalFloodCheckerEventLogger globalFloodCheckerEventLogger
-    )
-        : this(
-              category, 
-              key, 
-              getLimit,
-              getWindowPeriod,
-              isEnabled, 
-              logger, 
-              recordGlobalFloodedEvents, 
-              globalFloodCheckerEventLogger,
-              FloodCheckerRedisClient.GetInstance(), 
-              () => DateTime.UtcNow,
               null
             )
     {

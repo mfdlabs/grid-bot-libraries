@@ -10,7 +10,7 @@ using System.Collections.Concurrent;
 
 using Logging;
 
-using ComputeCloud;
+using Client;
 
 /// <summary>
 /// Represents the base abstract class for all job managers.
@@ -226,7 +226,7 @@ public abstract class JobManagerBase
     /// <param name="addToActiveJobs">Add this job to the active jobs list?</param>
     /// <returns>The SOAP interface, the instance and a job rejection reason.</returns>
     /// <exception cref="Exception">annot create a new job, since job already exists</exception>
-    public (ComputeCloudServiceSoap soapInterface, IGridServerInstance instance, JobRejectionReason? rejectionReason) NewJob(
+    public (GridServerServiceSoap soapInterface, IGridServerInstance instance, JobRejectionReason? rejectionReason) NewJob(
         IJob job,
         double expirationInSeconds,
         bool waitForReadyInstance = false,
@@ -254,7 +254,7 @@ public abstract class JobManagerBase
     /// - Job not found.
     /// - Job found but the instance has already exited.
     /// </exception>
-    public ComputeCloudServiceSoap GetJob(IJob job)
+    public GridServerServiceSoap GetJob(IJob job)
     {
         Logger.Debug("GetJob. {0}, total active jobs = {1}", job, ActiveJobs.Count);
 
@@ -308,7 +308,7 @@ public abstract class JobManagerBase
     /// Dispatch a SOAP message to every running job.
     /// </summary>
     /// <param name="action">The SOAP message.</param>
-    public void DispatchRequestToAllActiveJobs(Action<ComputeCloudServiceSoap> action)
+    public void DispatchRequestToAllActiveJobs(Action<GridServerServiceSoap> action)
     {
         foreach (var soapinstance in from instance in ActiveJobs.Values
                                      where !instance.HasExited

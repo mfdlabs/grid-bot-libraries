@@ -9,8 +9,7 @@ using System.ServiceModel;
 
 using Logging;
 
-using ComputeCloud;
-
+using Client;
 
 /// <summary>
 /// Represents the base class for a Grid Server Instance, implements <see cref="IGridServerInstance"/>
@@ -104,7 +103,7 @@ public abstract class GridServerInstanceBase : IGridServerInstance
     public abstract void Dispose();
 
     /// <inheritdoc cref="IGridServerInstance.GetSoapInterface(int)"/>
-    public ComputeCloudServiceSoap GetSoapInterface(int timeoutInMilliseconds)
+    public GridServerServiceSoap GetSoapInterface(int timeoutInMilliseconds)
     {
         var binding = new BasicHttpBinding(BasicHttpSecurityMode.None)
         {
@@ -112,7 +111,7 @@ public abstract class GridServerInstanceBase : IGridServerInstance
             SendTimeout = TimeSpan.FromMilliseconds(timeoutInMilliseconds)
         };
 
-        return new ComputeCloudServiceSoapClient(binding, new EndpointAddress(_LocalHost + Port.ToString()));
+        return new GridServerServiceSoapClient(binding, new EndpointAddress(_LocalHost + Port.ToString()));
     }
 
     /// <inheritdoc cref="IGridServerInstance.WaitForServiceToBecomeAvailable(bool, Stopwatch)"/>

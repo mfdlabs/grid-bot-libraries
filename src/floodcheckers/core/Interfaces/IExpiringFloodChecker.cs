@@ -10,5 +10,6 @@ public interface IExpiringFloodChecker : IFloodChecker
     /// <summary>
     /// The amount of time before the current count will expire, and the count return to zero. Null if there is no current value
     /// </summary>
+    /// <returns>The amount of time before the current count will expire, and the count return to zero. Null if there is no current value</returns>
     TimeSpan? TimeToExpiry();
 }

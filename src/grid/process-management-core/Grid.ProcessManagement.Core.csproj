@@ -20,7 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\logging\logging\Logging.csproj" />
     <ProjectReference Include="..\..\random\random\Random.csproj" />
-    <ProjectReference Include="..\compute-cloud\Grid.Client.csproj" />
+    <ProjectReference Include="..\client\Grid.Client.csproj" />
     <ProjectReference Include="..\port-management\Grid.PortManagement.csproj" />
     <ProjectReference Include="..\commands\Grid.Commands.csproj" />
   </ItemGroup>

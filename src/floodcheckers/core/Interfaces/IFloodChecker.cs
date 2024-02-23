@@ -8,19 +8,19 @@ public interface IFloodChecker : IBasicFloodChecker
     /// <summary>
     /// Returns the current state of the FloodChecker
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A <see cref="FloodCheckerStatus"/> representing the current state of the FloodChecker</returns>
     IFloodCheckerStatus Check();
 
     /// <summary>
     /// Gets the current count of the FloodChecker
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The current count of the FloodChecker</returns>
     int GetCount();
 
     /// <summary>
     /// Gets the magnitude that count currently exceeds the limit.
     /// If the count is currently at or below the limit this will return zero.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The magnitude that count currently exceeds the limit</returns>
     int GetCountOverLimit();
 }

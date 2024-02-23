@@ -3,7 +3,7 @@
 using System;
 using System.Diagnostics;
 
-using ComputeCloud;
+using Client;
 
 /// <summary>
 /// Represents a Grid Server Instance.
@@ -65,7 +65,7 @@ public interface IGridServerInstance : IDisposable
     /// </summary>
     /// <param name="timeoutInMilliseconds">The timeout of each SOAP action in milliseconds.</param>
     /// <returns>The SOAP interface.</returns>
-    ComputeCloudServiceSoap GetSoapInterface(int timeoutInMilliseconds);
+    GridServerServiceSoap GetSoapInterface(int timeoutInMilliseconds);
 
     /// <summary>
     /// Start the RCC instance.

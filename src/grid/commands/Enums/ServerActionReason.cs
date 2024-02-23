@@ -8,7 +8,7 @@ public enum ServerActionReason
     /// <summary>
     /// Moderation action.
     /// </summary>
-    Roblox,
+    Moderation,
 
     /// <summary>
     /// Developer has requested the shutdown.

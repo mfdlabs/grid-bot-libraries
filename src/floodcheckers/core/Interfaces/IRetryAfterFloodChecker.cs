@@ -9,5 +9,6 @@ public interface IRetryAfterFloodChecker : IFloodChecker
     /// <summary>
     /// Returns the amount of time in seconds until the caller can send a request that will not be flood checked. Null if the caller is not flood checked.
     /// </summary>
+    /// <returns>The amount of time in seconds until the caller can send a request that will not be flood checked. Null if the caller is not flood checked.</returns>
     int? RetryAfter();
 }
