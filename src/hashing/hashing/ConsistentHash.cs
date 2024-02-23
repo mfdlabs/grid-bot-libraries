@@ -69,7 +69,7 @@ public class ConsistentHash<TNode>
     /// </summary>
     /// <param name="key"></param>
     /// <returns>The hash as an integer.</returns>
-    public static int BetterHash(string key) => (int)MurmurHash2.Hash(Encoding.ASCII.GetBytes(key));
+    public static int BetterHash(string key) => (int)MurmurHash3.ComputeHash(Encoding.ASCII.GetBytes(key));
 
     ////////////////////////////////////////////////////////////////////////////////////////
     /// PRIVATE METHODS

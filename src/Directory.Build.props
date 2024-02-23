@@ -17,7 +17,7 @@
     <Copyright>Copyright © $(Company) $([System.DateTime]::Now.ToString(`yyyy`)). All rights reserved.</Copyright>
     <Authors>$(Company);Nikita Petko</Authors>
 
-    <RepositoryUrl>https://github.com/mfdlabs/nuget</RepositoryUrl>
+    <RepositoryUrl>https://github.com/mfdlabs/grid-bot-libraries</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
 
     <VersionPrefix>$([System.DateTime]::Now.ToString(`yyyy.MM.dd`))</VersionPrefix>
@@ -32,5 +32,24 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
+    <IncludeContentInPack>true</IncludeContentInPack>
   </PropertyGroup>
+
+  <!-- License -->
+  <PropertyGroup>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(SolutionDir)LICENSE" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <!-- Readme -->
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
 </Project>

@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Grid.ProcessManagement.Docker.Core</_Parameter1>
+      <_Parameter1>Grid.ProcessManagement.Docker</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 
@@ -20,7 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\logging\logging\Logging.csproj" />
     <ProjectReference Include="..\..\random\random\Random.csproj" />
-    <ProjectReference Include="..\compute-cloud\Grid.Client.csproj" />
+    <ProjectReference Include="..\client\Grid.Client.csproj" />
     <ProjectReference Include="..\port-management\Grid.PortManagement.csproj" />
     <ProjectReference Include="..\commands\Grid.Commands.csproj" />
   </ItemGroup>

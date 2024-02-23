@@ -86,7 +86,7 @@ public abstract class BaseRedisFloodChecker
 
         _GetLimit = getLimit;
         _GetWindowPeriod = getWindowPeriod;
-        _Settings = settings ?? Settings.Singleton;
+        _Settings = settings;
     }
 
     /// <summary>

@@ -64,7 +64,7 @@ public class PartitionWrapper
     {
         PartitionKey = partitionKey;
 
-        _Hash = (int)MurmurHash2.Hash(Encoding.ASCII.GetBytes(PartitionKey));
+        _Hash = (int)MurmurHash3.ComputeHash(Encoding.ASCII.GetBytes(PartitionKey));
     }
 
     /// <inheritdoc cref="object.GetHashCode"/>

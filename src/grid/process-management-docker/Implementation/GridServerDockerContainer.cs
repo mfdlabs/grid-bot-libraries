@@ -88,14 +88,7 @@ public sealed class GridServerDockerContainer : GridServerInstanceBase
 
         ContainerName = string.Format("grid-server-{0}-gr", Guid.NewGuid());
 
-        Logger.Information("Constructing GridServerDockerContainer",
-            new
-            {
-                ContainerName,
-                Port,
-                Version
-            }
-        );
+        Logger.Information("Constructing GridServerDockerContainer, ContainerName: {0}, Port: {1}, Version: {2}", ContainerName, Port, Version);
     }
 
     /// <inheritdoc cref="GridServerInstanceBase.Start"/>
@@ -163,7 +156,7 @@ public sealed class GridServerDockerContainer : GridServerInstanceBase
         var command = new ExecuteScriptCommand(
             new("highavailability", new Dictionary<string, object>())
         );
-        var job = new ComputeCloud.Job
+        var job = new Client.Job
         {
             id = Guid.NewGuid().ToString(),
             expirationInSeconds = 10000
