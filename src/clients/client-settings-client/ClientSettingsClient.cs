@@ -25,19 +25,20 @@ namespace ClientSettings.Client
         /// Returns the complete settings dictionary for a Roblox client application.
         /// </summary>
         /// <param name="applicationName">The name of the client application.</param>
+        /// <param name="x_Api_Key">API Key for request</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ClientApplicationSettingsResponse> GetApplicationSettingsAsync(string applicationName);
+        System.Threading.Tasks.Task<ClientApplicationSettingsResponse> GetApplicationSettingsAsync(string applicationName, string x_Api_Key);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Returns the complete settings dictionary for a Roblox client application.
         /// </summary>
         /// <param name="applicationName">The name of the client application.</param>
+        /// <param name="x_Api_Key">API Key for request</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ClientApplicationSettingsResponse> GetApplicationSettingsAsync(string applicationName, System.Threading.CancellationToken cancellationToken);
-
+        System.Threading.Tasks.Task<ClientApplicationSettingsResponse> GetApplicationSettingsAsync(string applicationName, string x_Api_Key, System.Threading.CancellationToken cancellationToken);
         /// <summary>
         /// Imports the complete settings dictionary for a Roblox client application.
         /// </summary>
@@ -137,11 +138,12 @@ namespace ClientSettings.Client
         /// Returns the complete settings dictionary for a Roblox client application.
         /// </summary>
         /// <param name="applicationName">The name of the client application.</param>
+        /// <param name="x_Api_Key">API Key for request</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<ClientApplicationSettingsResponse> GetApplicationSettingsAsync(string applicationName)
+        public virtual System.Threading.Tasks.Task<ClientApplicationSettingsResponse> GetApplicationSettingsAsync(string applicationName, string x_Api_Key)
         {
-            return GetApplicationSettingsAsync(applicationName, System.Threading.CancellationToken.None);
+            return GetApplicationSettingsAsync(applicationName, x_Api_Key, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -149,9 +151,10 @@ namespace ClientSettings.Client
         /// Returns the complete settings dictionary for a Roblox client application.
         /// </summary>
         /// <param name="applicationName">The name of the client application.</param>
+        /// <param name="x_Api_Key">API Key for request</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ClientApplicationSettingsResponse> GetApplicationSettingsAsync(string applicationName, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<ClientApplicationSettingsResponse> GetApplicationSettingsAsync(string applicationName, string x_Api_Key, System.Threading.CancellationToken cancellationToken)
         {
             if (applicationName == null)
                 throw new System.ArgumentNullException("applicationName");
@@ -167,6 +170,9 @@ namespace ClientSettings.Client
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
+                    if (x_Api_Key != null)
+                        request_.Headers.TryAddWithoutValidation("X-Api-Key", ConvertToString(x_Api_Key, System.Globalization.CultureInfo.InvariantCulture));
+
                     request_.Method = new System.Net.Http.HttpMethod("GET");
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
@@ -201,7 +207,7 @@ namespace ClientSettings.Client
                             throw new ApiException("1: The application name is invalid.", status_, responseText_, headers_, null);
                         }
                         else
-                        if (status_ == 403)
+                        if (status_ == 401)
                         {
                             string responseText_ = (response_.Content == null) ? string.Empty : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
                             throw new ApiException("1: The application name is invalid.", status_, responseText_, headers_, null);
@@ -290,12 +296,6 @@ namespace ClientSettings.Client
                         }
                         else
                         if (status_ == 400)
-                        {
-                            string responseText_ = (response_.Content == null) ? string.Empty : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            throw new ApiException("1: The application name is invalid.", status_, responseText_, headers_, null);
-                        }
-                        else
-                        if (status_ == 403)
                         {
                             string responseText_ = (response_.Content == null) ? string.Empty : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
                             throw new ApiException("1: The application name is invalid.", status_, responseText_, headers_, null);
@@ -470,10 +470,10 @@ namespace ClientSettings.Client
                             throw new ApiException("1: The application name is invalid.\n1: The setting name is invalid", status_, responseText_, headers_, null);
                         }
                         else
-                        if (status_ == 403)
+                        if (status_ == 404)
                         {
                             string responseText_ = (response_.Content == null) ? string.Empty : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            throw new ApiException("1: The application name is invalid.\n1: The setting name is invalid", status_, responseText_, headers_, null);
+                            throw new ApiException("1: The application name is invalid.", status_, responseText_, headers_, null);
                         }
                         else
                         {
@@ -569,10 +569,10 @@ namespace ClientSettings.Client
                             throw new ApiException("1: The application name is invalid.\n1: The setting name is invalid", status_, responseText_, headers_, null);
                         }
                         else
-                        if (status_ == 403)
+                        if (status_ == 401)
                         {
                             string responseText_ = (response_.Content == null) ? string.Empty : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            throw new ApiException("1: The application name is invalid.\n1: The setting name is invalid", status_, responseText_, headers_, null);
+                            throw new ApiException("1: The api key is invalid.", status_, responseText_, headers_, null);
                         }
                         else
                         {
