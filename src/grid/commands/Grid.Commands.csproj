@@ -2,4 +2,10 @@
   <PropertyGroup>
     <Description>Shared library containing models used by grid-servers for specific script execution actions.</Description>
   </PropertyGroup>
+
+  <!-- Embed all Scripts/*.lua files into the assembly -->
+  <ItemGroup>
+    <None Remove="Scripts\**\*.lua" />
+    <EmbeddedResource Include="Scripts\**\*.lua" />
+  </ItemGroup>
 </Project>
