@@ -153,6 +153,7 @@ public sealed class GridServerDockerContainer : GridServerInstanceBase
     {
         using var soap = GetSoapInterface(10000);
 
+#if !PRE_JSON_EXECUTION
         var command = new ExecuteScriptCommand(
             new("highavailability", new Dictionary<string, object>())
         );
@@ -163,6 +164,18 @@ public sealed class GridServerDockerContainer : GridServerInstanceBase
         };
 
         soap.BatchJobEx(job, command);
+
+#else
+        var lua = ScriptProvider.GetScript("HighAvailability");
+
+        var job = new Client.Job
+        {
+            id = Guid.NewGuid().ToString(),
+            expirationInSeconds = 10000
+        };
+
+        soap.BatchJobEx(job, lua);
+#endif
     }
 
     private List<Mount> GetContainerMounts()

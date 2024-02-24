@@ -2,8 +2,10 @@
 
 using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 using Logging;
+using Commands;
 
 /// <summary>
 /// Represents the Docker implementation of <see cref="GridServerInstanceBase"/>
@@ -70,7 +72,7 @@ public sealed class GridServerProcess : GridServerInstanceBase
     }
 
     /// <inheritdoc cref="GridServerInstanceBase.Start"/>
-    public override bool Start() 
+    public override bool Start()
         => _Process.Start(_GridServerSettings.GridServerExecutableName, _FileHelper.GetGridServerPath(true), Port) && WaitForProcessStart();
 
     private bool WaitForProcessStart()
@@ -79,6 +81,7 @@ public sealed class GridServerProcess : GridServerInstanceBase
         try
         {
             WaitForServiceToBecomeAvailable(false, sw);
+            InitializeHA();
 
             return true;
         }
@@ -95,6 +98,36 @@ public sealed class GridServerProcess : GridServerInstanceBase
 
             throw new Exception(format);
         }
+    }
+
+    private void InitializeHA()
+    {
+        using var soap = GetSoapInterface(10000);
+
+#if !PRE_JSON_EXECUTION
+
+        var command = new ExecuteScriptCommand(
+            new("highavailability", new Dictionary<string, object>())
+        );
+        var job = new Client.Job
+        {
+            id = Guid.NewGuid().ToString(),
+            expirationInSeconds = 10000
+        };
+
+        soap.BatchJobEx(job, command);
+
+#else
+        var lua = ScriptProvider.GetScript("HighAvailability");
+
+        var job = new Client.Job
+        {
+            id = Guid.NewGuid().ToString(),
+            expirationInSeconds = 10000
+        };
+
+        soap.BatchJobEx(job, lua);
+#endif
     }
 
     /// <inheritdoc cref="IDisposable.Dispose"/>
