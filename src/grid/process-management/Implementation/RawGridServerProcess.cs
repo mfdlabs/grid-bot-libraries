@@ -113,9 +113,7 @@ internal class RawGridServerProcess : IGridServerProcess, IDisposable
         {
             FileName = !string.IsNullOrEmpty(workingDirectory) 
                 ? Path.Combine(workingDirectory, executableName)
-                : executableName,
-            UseShellExecute = false,
-            CreateNoWindow = true
+                : executableName
         };
 
         if (!string.IsNullOrEmpty(workingDirectory))
@@ -126,7 +124,7 @@ internal class RawGridServerProcess : IGridServerProcess, IDisposable
         if (!string.IsNullOrEmpty(args))
             startInfo.Arguments = args;
         else
-            startInfo.Arguments = $"{port} -Console";
+            startInfo.Arguments = $"{port} -Console -Verbose";
 
         _endpoint = new IPEndPoint(IPAddress.Loopback, port);
         _process = Process.Start(startInfo);
