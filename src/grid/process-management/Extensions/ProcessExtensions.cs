@@ -18,7 +18,7 @@ internal static class ProcessExtensions
         endPoint = null;
 
         var row = ManagedIpHelper.GetExtendedTcpTable(true)
-            .FirstOrDefault(r => r.ProcessId == process.Id);
+            .FirstOrDefault(r => r.ProcessId == process.Id && r.LocalEndPoint.Address.Equals(IPAddress.Loopback));
 
         if (row != null)
         {
