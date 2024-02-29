@@ -8,8 +8,6 @@
     <LangVersion>10</LangVersion>
 
     <Configurations>debug;release</Configurations>
-
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <PropertyGroup Label="PackageMetadata">

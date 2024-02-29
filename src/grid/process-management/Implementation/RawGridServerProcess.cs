@@ -20,7 +20,7 @@ internal class RawGridServerProcess : IGridServerProcess, IDisposable
     /// <summary>
     /// Construct a new instance of <see cref="RawGridServerProcess"/>
     /// </summary>
-    public RawGridServerProcess() {}
+    public RawGridServerProcess() { }
 
     /// <summary>
     /// Construct a new instance of <see cref="RawGridServerProcess"/>
@@ -111,9 +111,11 @@ internal class RawGridServerProcess : IGridServerProcess, IDisposable
 
         var startInfo = new ProcessStartInfo
         {
-            FileName = !string.IsNullOrEmpty(workingDirectory) 
+            FileName = !string.IsNullOrEmpty(workingDirectory)
                 ? Path.Combine(workingDirectory, executableName)
-                : executableName
+                : executableName,
+            UseShellExecute = true,
+            CreateNoWindow = false
         };
 
         if (!string.IsNullOrEmpty(workingDirectory))
