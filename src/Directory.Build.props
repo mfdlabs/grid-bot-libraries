@@ -18,7 +18,7 @@
     <RepositoryUrl>https://github.com/mfdlabs/grid-bot-libraries</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
 
-    <VersionPrefix>$([System.DateTime]::Now.ToString(`yyyy.MM.dd`))</VersionPrefix>
+    <VersionPrefix>1.0.1</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup Label="TestsProperties" Condition="$(MSBuildProjectName.Contains('.Tests'))">
