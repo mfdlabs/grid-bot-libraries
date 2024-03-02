@@ -38,7 +38,7 @@ public class RedisExpandingWindowFloodChecker : BaseRedisFloodChecker, IExpiring
         ILogger logger, 
         IRedisClient redisClient, 
         IGlobalFloodCheckerEventLogger globalFloodCheckerEventLogger,
-        ISettings settings = null
+        ISettings settings
     ) 
         : base(
               category,
