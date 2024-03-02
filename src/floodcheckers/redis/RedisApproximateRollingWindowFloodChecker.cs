@@ -31,6 +31,7 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
     /// <param name="isEnabled">Whether or not the floodchecker is enabled. If false it will never report itself as flooded</param>
     /// <param name="logger">The <see cref="ILogger"/></param>
     /// <param name="redisClient">The <see cref="IRedisClient"/></param>
+    /// <param name="settings">The <see cref="ISettings"/></param>
     public RedisApproximateRollingWindowFloodChecker(
         string category,
         string key,
@@ -38,7 +39,8 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
         Func<TimeSpan> getWindowPeriod,
         Func<bool> isEnabled,
         ILogger logger,
-        IRedisClient redisClient
+        IRedisClient redisClient,
+        ISettings settings
     )
         : this(
               category,
@@ -49,7 +51,8 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
               logger,
               () => false,
               redisClient,
-              null
+              null,
+              settings
             )
     {
     }
@@ -63,7 +66,8 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
         ILogger logger,
         Func<bool> recordGlobalFloodedEvents,
         IRedisClient redisClient,
-        IGlobalFloodCheckerEventLogger globalFloodCheckerEventLogger
+        IGlobalFloodCheckerEventLogger globalFloodCheckerEventLogger,
+        ISettings settings
     )
         : this(
               category,
@@ -76,7 +80,7 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
               globalFloodCheckerEventLogger,
               redisClient,
               () => DateTime.UtcNow,
-              null
+              settings
             )
     {
     }
@@ -92,7 +96,7 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
         IGlobalFloodCheckerEventLogger globalFloodCheckerEventLogger,
         IRedisClient redisClient,
         Func<DateTime> nowProvider,
-        ISettings settings = null
+        ISettings settings
     ) 
         : base(
               category, 

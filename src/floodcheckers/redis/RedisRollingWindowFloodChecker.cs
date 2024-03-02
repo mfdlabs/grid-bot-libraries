@@ -33,6 +33,7 @@ public class RedisRollingWindowFloodChecker : BaseRedisFloodChecker, IRetryAfter
     /// <param name="isEnabled">Whether or not the floodchecker is enabled. If false it will never report itself as flooded</param>
     /// <param name="logger">The <see cref="ILogger"/></param>
     /// <param name="redisClient">The <see cref="IRedisClient"/></param>
+    /// <param name="settings">The <see cref="ISettings"/></param>
     public RedisRollingWindowFloodChecker(
         string category,
         string key,
@@ -40,7 +41,8 @@ public class RedisRollingWindowFloodChecker : BaseRedisFloodChecker, IRetryAfter
         Func<TimeSpan> getWindowPeriod,
         Func<bool> isEnabled,
         ILogger logger,
-        IRedisClient redisClient
+        IRedisClient redisClient,
+        ISettings settings
     )
         : this(
               category,
@@ -51,7 +53,8 @@ public class RedisRollingWindowFloodChecker : BaseRedisFloodChecker, IRetryAfter
               logger,
               () => false,
               redisClient,
-              null
+              null,
+              settings
             )
     {
     }
@@ -65,7 +68,8 @@ public class RedisRollingWindowFloodChecker : BaseRedisFloodChecker, IRetryAfter
         ILogger logger,
         Func<bool> recordGlobalFloodedEvents,
         IRedisClient redisClient,
-        IGlobalFloodCheckerEventLogger globalFloodCheckerEventLogger
+        IGlobalFloodCheckerEventLogger globalFloodCheckerEventLogger,
+        ISettings settings
     )
         : this(
               category,
@@ -78,7 +82,7 @@ public class RedisRollingWindowFloodChecker : BaseRedisFloodChecker, IRetryAfter
               globalFloodCheckerEventLogger,
               redisClient,
               () => DateTime.UtcNow,
-              null
+              settings
             )
     {
     }
@@ -94,7 +98,7 @@ public class RedisRollingWindowFloodChecker : BaseRedisFloodChecker, IRetryAfter
         IGlobalFloodCheckerEventLogger globalFloodCheckerEventLogger,
         IRedisClient redisClient,
         Func<DateTime> nowProvider,
-        ISettings settings = null
+        ISettings settings
     )
         : base(
               category,
