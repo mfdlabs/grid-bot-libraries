@@ -11,8 +11,8 @@ using System.Collections;
 /// <seealso cref="IConfigurationProvider"/>
 public abstract class EnvironmentProvider : BaseProvider
 {
-    /// <inheritdoc cref="BaseProvider.Set{T}(string, T)"/>
-    public override void Set<T>(string variable, T value)
+    /// <inheritdoc cref="BaseProvider.SetRawValue{T}(string, T)"/>
+    protected override void SetRawValue<T>(string variable, T value)
     {
         var realValue = value.ToString();
 

@@ -78,8 +78,8 @@ public abstract class VaultProvider : BaseProvider, IVaultProvider
         _staticLogger?.Debug("VaultProvider: Started refresh thread!");
     }
 
-    /// <inheritdoc cref="BaseProvider.Set{T}(string, T)"/>
-    public override void Set<T>(string variable, T value)
+    /// <inheritdoc cref="BaseProvider.SetRawValue{T}(string, T)"/>
+    protected override void SetRawValue<T>(string variable, T value)
     {
         if (_client == null) return;
 
@@ -91,8 +91,6 @@ public abstract class VaultProvider : BaseProvider, IVaultProvider
             realValue = string.Join(",", (value as Array).Cast<object>().ToArray());
 
         _cachedValues[variable] = realValue;
-
-        PropertyChanged?.Invoke(this, new(variable));
 
         ApplyCurrent();
     }

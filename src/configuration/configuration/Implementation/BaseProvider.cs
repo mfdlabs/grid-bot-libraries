@@ -85,6 +85,13 @@ public abstract class BaseProvider : IConfigurationProvider
     protected abstract bool GetRawValue(string key, out string value);
 
     /// <summary>
+    /// Raw set a value for the key.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="value">The value.</param>
+    protected abstract void SetRawValue<T>(string key, T value);
+
+    /// <summary>
     /// Converts the specified value to the specified type.
     /// </summary>
     /// <param name="value">The value.</param>
@@ -218,7 +225,19 @@ public abstract class BaseProvider : IConfigurationProvider
     }
 
     /// <inheritdoc cref="IConfigurationProvider.Set{T}(string, T)"/>
-    public abstract void Set<T>(string variable, T value);
+    public void Set<T>(string variable, T value)
+    {
+        if (IsVariableOverridden(variable))
+        {
+            _logger?.Warning("Variable '{0}' is overridden, cannot set value!", variable);
+
+            return;
+        }
+
+        SetRawValue(variable, value);
+
+        PropertyChanged?.Invoke(this, new(variable));
+    }
 
     /// <inheritdoc cref="IConfigurationProvider.GetOrDefault{T}(string, T)"/>
     public T GetOrDefault<T>(string variable, T defaultValue = default(T)) => GetOrDefault(variable, () => defaultValue);
