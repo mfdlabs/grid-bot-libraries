@@ -23,7 +23,7 @@ env:
 
 jobs:
   build:
-    runs-on: "local-infrastructure"
+    runs-on: "grid-bot-infra"
 
     env:
       VersionSuffix: ${{ github.event.pull_request.number && format('pr-{0}-{1}-{2}-preview', github.event.pull_request.number, github.run_number, github.run_attempt) || '' }}
