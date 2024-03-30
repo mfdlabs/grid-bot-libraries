@@ -96,7 +96,7 @@ jobs:
           rm -rf /_/_work/${{ github.repository }}/${{ github.sha }}
   # Upload to NuGet
   upload:
-    runs-on: "local-infrastructure"
+    runs-on: "grid-bot-infra"
 
     needs: "build"
 
