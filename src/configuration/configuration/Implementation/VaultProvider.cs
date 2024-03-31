@@ -20,14 +20,8 @@ using Threading.Extensions;
 /// <summary>
 /// Implementation for <see cref="BaseProvider"/> via Vault.
 /// </summary>
-public abstract class VaultProvider : BaseProvider, IVaultProvider
+public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
 {
-    private static readonly string[] _propertyNamesIgnoredForCacheInit = new[]
-    {
-        nameof(Mount),
-        nameof(Path)
-    };
-
     private static readonly TimeSpan _defaultRefreshIntervalConstant = TimeSpan.FromMinutes(10);
     private static TimeSpan _defaultRefreshInterval
     {
@@ -39,6 +33,12 @@ public abstract class VaultProvider : BaseProvider, IVaultProvider
             return refreshInterval;
         }
     }
+
+    private static readonly string[] _propertyNamesIgnoredForApplyCurrent = new[]
+    {
+        nameof(Mount),
+        nameof(Path)
+    };
 
     private static readonly ConcurrentBag<VaultProvider> _providers = new();
 
@@ -100,13 +100,56 @@ public abstract class VaultProvider : BaseProvider, IVaultProvider
     {
         if (_client == null) return;
 
+        // Build the current from the getters.
+        var values = GetLatestValues();
+
         _logger?.Debug("Writing secret '{0}/{1}' to Vault!", Mount, Path);
 
         _client?.V1.Secrets.KeyValue.V2.WriteSecretAsync(
             mountPoint: Mount,
             path: Path,
-            data: _cachedValues
+            data: values
         );
+    }
+
+    /// <summary>
+    /// This boasts the ability to fetch the latest values from the getters.
+    /// 
+    /// This is because the cache does not cache default values, and we need to fetch the latest values from the getters.
+    /// </summary>
+    private Dictionary<string, object> GetLatestValues()
+    {
+        var getters = GetType()
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(prop => !_propertyNamesIgnoredForApplyCurrent.Contains(prop.Name));
+
+        var newCachedValues = new Dictionary<string, object>();
+
+        foreach (var getter in getters)
+        {
+            var getterName = getter.GetCustomAttribute<SettingNameAttribute>()?.Name ?? getter.Name;
+
+            try
+            {
+                _logger?.Debug("Fetching initial value for {0}.{1}", GetType().Name, getterName);
+
+                var value = getter.GetGetMethod().Invoke(this, Array.Empty<object>());
+                var realValue = value?.ToString() ?? string.Empty;
+
+                if (value is Array arr)
+                    realValue = string.Join(",", arr.Cast<object>().ToArray());
+
+                newCachedValues.Add(getterName, realValue);
+            }
+            catch (TargetInvocationException ex)
+            {
+                _logger?.Warning("Error occurred when fetching getter for '{0}.{1}': {2}", GetType().Name, getterName, ex.InnerException.Message);
+
+                newCachedValues.Add(getterName, string.Empty);
+            }
+        }
+
+        return newCachedValues;
     }
 
     /// <summary>
@@ -118,8 +161,6 @@ public abstract class VaultProvider : BaseProvider, IVaultProvider
         logger ??= Logger.Singleton;
         
         SetLogger(logger);
-
-        ApplyInitialCache();
 
         _logger?.Debug("VaultProvider: Setup for '{0}/{1}' to refresh every '{2}' interval!", Mount, Path, RefreshInterval);
 
@@ -148,40 +189,6 @@ public abstract class VaultProvider : BaseProvider, IVaultProvider
             
             Thread.Sleep(RefreshInterval); // SetClient makes DoRefresh call.
         }
-    }
-
-    private void ApplyInitialCache()
-    {
-        var getters = GetType()
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(prop => !_propertyNamesIgnoredForCacheInit.Contains(prop.Name));
-
-        var newCachedValues = new Dictionary<string, object>();
-
-        foreach (var getter in getters)
-        {
-            try
-            {
-                _logger?.Debug("Fetching initial value for {0}.{1}", GetType().Name, getter.Name);
-
-                var value = getter.GetGetMethod().Invoke(this, Array.Empty<object>());
-                var realValue = value?.ToString() ?? string.Empty;
-
-                if (value is Array arr)
-                    realValue = string.Join(",", arr.Cast<object>().ToArray());
-
-                newCachedValues.Add(getter.Name, realValue);
-            }
-            catch (TargetInvocationException ex)
-            {
-                _logger?.Warning("Error occurred when fetching getter for '{0}.{1}': {2}", GetType().Name, getter.Name, ex.InnerException.Message);
-
-                newCachedValues.Add(getter.Name, string.Empty);
-            }
-        }
-
-        lock (_cachedValues)
-            _cachedValues = newCachedValues;
     }
 
     private void DoRefresh()
@@ -251,7 +258,8 @@ public abstract class VaultProvider : BaseProvider, IVaultProvider
     {
         value = null;
 
-        if (!_cachedValues.TryGetValue(key, out var v)) return false;
+        if (!_cachedValues.TryGetValue(key, out var v)) 
+            return base.GetRawValue(key, out value);
 
         if (v is JsonElement element)
             value = element.GetString();
