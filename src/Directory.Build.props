@@ -23,6 +23,7 @@
 
   <PropertyGroup Label="TestsProperties" Condition="$(MSBuildProjectName.Contains('.Tests'))">
     <IsTestProject>true</IsTestProject>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup Label="PackageProperties" Condition="'$(IsTestProject)' != 'true'">
@@ -32,6 +33,14 @@
     <IsPackable>true</IsPackable>
     <IncludeContentInPack>true</IncludeContentInPack>
   </PropertyGroup>
+
+  <ItemGroup Label="TestReferences" Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="NUnit" Version="4.1.0" />
+	  <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
 
   <!-- License -->
   <PropertyGroup>

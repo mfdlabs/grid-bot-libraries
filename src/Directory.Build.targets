@@ -1,7 +1,7 @@
 <Project>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>$(AssemblyName).Tests.Unit</_Parameter1>
+      <_Parameter1>$(AssemblyName).Unit.Tests</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <!-- FakeItEasy -->

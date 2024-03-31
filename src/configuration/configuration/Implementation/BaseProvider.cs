@@ -224,6 +224,55 @@ public abstract class BaseProvider : IConfigurationProvider
         return false;
     }
 
+    /// <summary>
+    /// Converts the value back to a string.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="type">The <see cref="Type"/></param>
+    /// <returns>The converted value.</returns>
+    protected string ConvertFrom(object value, Type type)
+    {
+        if (value == null) return null;
+
+        if (type.IsArray)
+        {
+            var arr = (IEnumerable)value;
+
+            return string.Join(",", arr.Cast<object>().Select(x => ConvertFrom(x, type.GetElementType())));
+        }
+
+        if (type.IsEnum)
+            return value.ToString();
+
+        if (type == typeof(TimeSpan))
+            return value.ToString();
+
+        var attribute = type.GetCustomAttribute<TypeConverterAttribute>();
+        if (attribute != null)
+        {
+            var converterType = Type.GetType(attribute.ConverterTypeName);
+            if (converterType != null)
+            {
+                var converter = (TypeConverter)converterType.GetConstructor(Array.Empty<Type>())?.Invoke(Array.Empty<object>());
+                if (converter != null)
+                {
+                    if (converter.CanConvertTo(typeof(string)))
+                        return converter.ConvertTo(value, typeof(string)) as string;
+                }
+            }
+        }
+
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+        {
+            var dict = (IDictionary)value;
+
+            return string.Join("\n", dict.Keys.Cast<object>()
+                .Select(x => $"{ConvertFrom(x, type.GetGenericArguments().First())}={ConvertFrom(dict[x], type.GetGenericArguments().ElementAt(1))}"));
+        }
+
+        return value.ToString();
+    }
+
     /// <inheritdoc cref="IConfigurationProvider.Set{T}(string, T)"/>
     public void Set<T>(string variable, T value)
     {
