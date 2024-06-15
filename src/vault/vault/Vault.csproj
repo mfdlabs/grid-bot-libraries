@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Helper to aid with creation of a shared Vault client.</Description>
+
+    <Version>1.0.5</Version>
   </PropertyGroup>
 
   <ItemGroup>
