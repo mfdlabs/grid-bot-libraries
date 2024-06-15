@@ -16,15 +16,15 @@
     <!--Executes
     the Git Commands to get the Hash and Branch-->
     <Exec Command="git rev-parse HEAD" ConsoleToMSBuild="true"
-      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitHash)' == '' ">
+      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitHash)' == '' " WorkingDirectory="$(SolutionDir)">
       <Output TaskParameter="ConsoleOutput" PropertyName="CommitHash" />
     </Exec>
     <Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true"
-      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitShortHash)' == '' ">
+      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitShortHash)' == '' "  WorkingDirectory="$(SolutionDir)">
       <Output TaskParameter="ConsoleOutput" PropertyName="CommitShortHash" />
     </Exec>
     <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true"
-      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitBranch)' == '' ">
+      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitBranch)' == '' "  WorkingDirectory="$(SolutionDir)">
       <Output TaskParameter="ConsoleOutput" PropertyName="CommitBranch" />
     </Exec>
 
