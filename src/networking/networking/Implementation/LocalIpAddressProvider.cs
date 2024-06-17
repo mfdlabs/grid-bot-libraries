@@ -82,12 +82,21 @@ public class LocalIpAddressProvider : ILocalIpAddressProvider, INotifyPropertyCh
     /// </summary>
     /// <param name="logger">The <see cref="ILogger"/></param>
     /// <exception cref="ArgumentNullException"><paramref name="logger"/> cannot be null.</exception>
-    public LocalIpAddressProvider(ILogger logger) 
+    public LocalIpAddressProvider(ILogger logger)
         : this(new DnsWrapper(), logger)
     {
     }
 
-    internal LocalIpAddressProvider(IDns dns, ILogger logger)
+    /// <summary>
+    /// Construct a new instance of <see cref="LocalIpAddressProvider"/>
+    /// </summary>
+    /// <param name="dns">The <see cref="IDns"/></param>
+    /// <param name="logger">The <see cref="ILogger"/></param>
+    /// <exception cref="ArgumentNullException">
+    /// - <paramref name="dns"/> cannot be null.
+    /// - <paramref name="logger"/> cannot be null.
+    /// </exception>
+    public LocalIpAddressProvider(IDns dns, ILogger logger)
     {
         _Dns = dns ?? throw new ArgumentNullException(nameof(dns));
         _Logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -108,71 +117,71 @@ public class LocalIpAddressProvider : ILocalIpAddressProvider, INotifyPropertyCh
         => GetIpAddresses(AddressFamily.InterNetwork).ToList();
 
     /// <inheritdoc cref="ILocalIpAddressProvider.GetIpAddressesV6"/>
-    public IList<IPAddress> GetIpAddressesV6() 
+    public IList<IPAddress> GetIpAddressesV6()
         => GetIpAddresses(AddressFamily.InterNetworkV6).ToList();
+
+    private IEnumerable<IPAddress> GetIpAddresses(AddressFamily addressFamily)
+    {
+        if (addressFamily != AddressFamily.InterNetwork && addressFamily != AddressFamily.InterNetworkV6)
+        {
+            _Logger.Error("Unsupported address family: {0}", addressFamily);
+
+            return Enumerable.Empty<IPAddress>();
+        }
+
+        if (GetAddressesByInterface(NetworkInterfaceType.Wireless80211, addressFamily, out var ipAddresses) ||
+            GetAddressesByInterface(NetworkInterfaceType.Ethernet, addressFamily, out ipAddresses) ||
+            GetAddressesByInterface(NetworkInterfaceType.Loopback, addressFamily, out ipAddresses))
+            return ipAddresses;
+
+        _Logger.Error("No public {0} address found for server on the following interfaces: {1}, {2}, {3}!", addressFamily, NetworkInterfaceType.Wireless80211, NetworkInterfaceType.Ethernet, NetworkInterfaceType.Loopback);
+
+        return Enumerable.Empty<IPAddress>();
+    }
+
+    private static bool GetAddressesByInterface(NetworkInterfaceType interfaceType, AddressFamily addressFamily, out IEnumerable<IPAddress> ipAddresses)
+        => (ipAddresses = (from item in NetworkInterface.GetAllNetworkInterfaces()
+                  where item.NetworkInterfaceType == interfaceType &&
+                        item.OperationalStatus == OperationalStatus.Up
+                  select item.GetIPProperties().UnicastAddresses
+                  into unicastAddresses
+                  select unicastAddresses.FirstOrDefault()?.Address
+                  into address
+                  where address != null && 
+                        address.AddressFamily == addressFamily
+                  select address))?.Any() ?? false;
+
+    private void RefreshIpAddresses(AddressFamily addressFamily)
+    {
+        if (addressFamily != AddressFamily.InterNetwork && addressFamily != AddressFamily.InterNetworkV6)
+        {
+            _Logger.Error("Unsupported address family: {0}", addressFamily);
+
+            return;
+        }
+
+        // Try Wi-Fi first, then Ethernet and finally Loopback
+        if (GetAddressesByInterface(NetworkInterfaceType.Wireless80211, addressFamily, out var newIpAddresses) ||
+            GetAddressesByInterface(NetworkInterfaceType.Ethernet, addressFamily, out newIpAddresses) ||
+            GetAddressesByInterface(NetworkInterfaceType.Loopback, addressFamily, out newIpAddresses))
+        {
+            var newIpAddress = newIpAddresses.First();
+            var oldIpAddress = addressFamily == AddressFamily.InterNetwork ? AddressV4 : AddressV6;
+
+            if (addressFamily == AddressFamily.InterNetwork)
+                AddressV4 = newIpAddress;
+            else
+                AddressV6 = newIpAddress;
+
+            _Logger.Information("{0} IP address changed from {1} to {2}.", addressFamily, oldIpAddress, newIpAddress);
+        }
+        else
+            _Logger.Error("No public {0} address found for server on the following interfaces: {1}, {2}, {3}!", addressFamily, NetworkInterfaceType.Wireless80211, NetworkInterfaceType.Ethernet, NetworkInterfaceType.Loopback);
+    }
 
     internal void RefreshIpAddresses()
     {
         RefreshIpAddresses(AddressFamily.InterNetwork);
         RefreshIpAddresses(AddressFamily.InterNetworkV6);
-    }
-
-    internal virtual void RefreshIpAddresses(AddressFamily addressFamily)
-    {
-        if (addressFamily != AddressFamily.InterNetwork && addressFamily != AddressFamily.InterNetworkV6)
-        {
-            _Logger.Error("Unsupported address family: {0}", addressFamily);
-            return;
-        }
-
-        var addresses = GetIpAddresses(addressFamily).ToList();
-        if (!addresses.Any())
-        {
-            _Logger.Error("No public {0} address found for server, while trying to refresh IP address in {1}!", addressFamily, nameof(RefreshIpAddresses));
-            return;
-        }
-
-        if ((addressFamily == AddressFamily.InterNetwork && addresses.Contains(AddressV4)) ||
-            (addressFamily == AddressFamily.InterNetworkV6 && addresses.Contains(AddressV6)))
-            return;
-
-        var newIpAddress = addresses.First();
-
-        IPAddress oldIpAddress;
-        if (addressFamily == AddressFamily.InterNetwork)
-        {
-            oldIpAddress = AddressV4;
-
-            AddressV4 = newIpAddress;
-        }
-        else
-        {
-            oldIpAddress = AddressV6;
-
-            AddressV6 = newIpAddress;
-        }
-
-        _Logger.Information("{0} IP address changed from {1} to {2}.", addressFamily, oldIpAddress, newIpAddress);
-    }
-
-    internal virtual IEnumerable<IPAddress> GetIpAddresses(AddressFamily addressFamily)
-    {
-        IPHostEntry hostEntry;
-        try
-        {
-            hostEntry = _Dns.GetHostEntry(_Dns.GetHostName());
-        }
-        catch (Exception ex)
-        {
-            _Logger.Error("Exception encountered while acquiring host information from DNS: {0}", ex);
-
-            return Enumerable.Empty<IPAddress>();
-        }
-        if (hostEntry == null)
-            return Enumerable.Empty<IPAddress>();
-
-        return (from address in hostEntry.AddressList
-                where address.AddressFamily == addressFamily
-                select address).ToList();
     }
 }
