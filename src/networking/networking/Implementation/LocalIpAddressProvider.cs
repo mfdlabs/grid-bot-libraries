@@ -173,7 +173,7 @@ public class LocalIpAddressProvider : ILocalIpAddressProvider, INotifyPropertyCh
             else
                 AddressV6 = newIpAddress;
 
-            _Logger.Information("{0} IP address changed from {1} to {2}.", addressFamily, oldIpAddress, newIpAddresses);
+            _Logger.Information("{0} IP address changed from {1} to {2}.", addressFamily, oldIpAddress, newIpAddress);
         }
         else
             _Logger.Error("No public {0} address found for server on the following interfaces: {1}, {2}, {3}!", addressFamily, NetworkInterfaceType.Wireless80211, NetworkInterfaceType.Ethernet, NetworkInterfaceType.Loopback);
