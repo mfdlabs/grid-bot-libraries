@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Shared library to help with hashing.</Description>
+
+    <Version>1.0.4</Version>
   </PropertyGroup>
 </Project>

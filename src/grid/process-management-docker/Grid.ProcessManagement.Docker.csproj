@@ -2,6 +2,7 @@
   <PropertyGroup>
     <Description>Shared library for interaction with Docker based grid server processes!</Description>
 
+    <Version>1.0.4</Version>
     <RootNamespace>Grid</RootNamespace>
   </PropertyGroup>
 
