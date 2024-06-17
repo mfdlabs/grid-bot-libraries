@@ -34,10 +34,10 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
         }
     }
 
-    private static readonly string[] _propertyNamesIgnoredForApplyCurrent = new[]
+    private static readonly HashSet<string> _propertyNamesIgnored = new()
     {
         nameof(Mount),
-        nameof(Path)
+        nameof(Path),
     };
 
     private static readonly ConcurrentBag<VaultProvider> _providers = new();
@@ -83,7 +83,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     {
         if (_client == null) return;
 
-        _logger?.Debug("Set value in vault at path '{0}/{1}/{2}'", Mount, Path, variable);
+        _logger?.Debug("VaultProvider: Set value in vault at path '{0}/{1}/{2}'", Mount, Path, variable);
 
         var realValue = value.ToString();
 
@@ -103,7 +103,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
         // Build the current from the getters.
         var values = GetLatestValues();
 
-        _logger?.Debug("Writing secret '{0}/{1}' to Vault!", Mount, Path);
+        _logger?.Debug("VaultProvider: Writing secret '{0}/{1}' to Vault!", Mount, Path);
 
         _client?.V1.Secrets.KeyValue.V2.WriteSecretAsync(
             mountPoint: Mount,
@@ -121,7 +121,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     {
         var getters = GetType()
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(prop => !_propertyNamesIgnoredForApplyCurrent.Contains(prop.Name));
+            .Where(prop => !_propertyNamesIgnored.Contains(prop.Name));
 
         var newCachedValues = new Dictionary<string, object>();
 
@@ -131,7 +131,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
 
             try
             {
-                _logger?.Debug("Fetching initial value for {0}.{1}", GetType().Name, getterName);
+                _logger?.Debug("VaultProvider: Fetching initial value for {0}.{1}", GetType().Name, getterName);
 
                 var value = getter.GetGetMethod().Invoke(this, Array.Empty<object>());
                 var realValue = value?.ToString() ?? string.Empty;
@@ -143,7 +143,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
             }
             catch (TargetInvocationException ex)
             {
-                _logger?.Warning("Error occurred when fetching getter for '{0}.{1}': {2}", GetType().Name, getterName, ex.InnerException.Message);
+                _logger?.Debug("VaultProvider: Error occurred when fetching getter for '{0}.{1}': {2}", GetType().Name, getterName, ex.InnerException.Message);
 
                 newCachedValues.Add(getterName, string.Empty);
             }
@@ -159,7 +159,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     protected VaultProvider(ILogger logger = null)
     {
         logger ??= Logger.Singleton;
-        
+
         SetLogger(logger);
 
         _logger?.Debug("VaultProvider: Setup for '{0}/{1}' to refresh every '{2}' interval!", Mount, Path, RefreshInterval);
@@ -186,7 +186,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
                     _staticLogger?.Error(ex);
                 }
             }
-            
+
             Thread.Sleep(RefreshInterval); // SetClient makes DoRefresh call.
         }
     }
@@ -214,7 +214,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
         {
             if (ex.HttpStatusCode == HttpStatusCode.NotFound)
             {
-                _logger?.Warning("VaultProvider: DoRefresh for secret '{0}/{1}' failed: No secret found!", Mount, Path);
+                _logger?.Debug("VaultProvider: DoRefresh for secret '{0}/{1}' failed: No secret found!", Mount, Path);
 
                 return;
             }
@@ -225,15 +225,52 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
         }
     }
 
+    private bool HasProperty(ref string name)
+    {
+        var type = GetType();
+        var getter = type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
+
+        if (getter == null)
+        {
+            var propertyName = name;
+            var property = (from prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                            let attrib = prop.GetCustomAttribute<SettingNameAttribute>()
+                            where !_propertyNamesIgnored.Contains(prop.Name) && attrib?.Name == propertyName
+                            select prop).SingleOrDefault();
+
+            if (property == null)
+            {
+                _logger?.Debug("VaultProvider: Skipping property changed handler for '{0}' because settings provider '{1}' does not define it!", name, this);
+                _logger?.Warning("{0}: Unknown property '{1}', make sure it is defined in the settings provider or has a appropriate [{2}] attribute!", GetType().Name, name, nameof(SettingNameAttribute));
+
+                return false;
+            }
+
+            name = property.Name;
+        }
+
+        return true;
+    }
+
     private void InvokePropertyChangedForChangedValues(IDictionary<string, object> newValues)
     {
         if (_cachedValues.Count == 0)
         {
             foreach (var kvp in newValues)
             {
-                _logger?.Debug("Invoking property changed handler for '{0}'", kvp.Key);
+                if (_propertyNamesIgnored.Contains(kvp.Key))
+                {
+                    _logger?.Debug("VaultProvider: Skipping property changed handler for '{0}' as it is a reserved property!", kvp.Key);
 
-                PropertyChanged?.Invoke(this, new(kvp.Key));
+                    continue;
+                }
+
+                var propertyName = kvp.Key;
+                if (!HasProperty(ref propertyName)) continue;
+
+                _logger?.Debug("VaultProvider: Invoking property changed handler for '{0}'", propertyName);
+
+                PropertyChanged?.Invoke(this, new(propertyName));
             }
 
             return;
@@ -244,9 +281,19 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
             if (_cachedValues.TryGetValue(kvp.Key, out var value))
                 if (value.ToString().Equals(kvp.Value.ToString())) continue;
 
-            _logger?.Debug("Invoking property changed handler for '{0}'", kvp.Key);
+            if (_propertyNamesIgnored.Contains(kvp.Key))
+            {
+                _logger?.Debug("VaultProvider: Skipping property changed handler for '{0}' as it is a reserved property!", kvp.Key);
 
-            PropertyChanged?.Invoke(this, new(kvp.Key));
+                continue;
+            }
+
+            var propertyName = kvp.Key;
+            if (!HasProperty(ref propertyName)) continue;
+
+            _logger?.Debug("Invoking property changed handler for '{0}'", propertyName);
+
+            PropertyChanged?.Invoke(this, new(propertyName));
         }
     }
 
@@ -256,10 +303,11 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     /// <inheritdoc cref="BaseProvider.GetRawValue(string, out string)"/>
     protected override bool GetRawValue(string key, out string value)
     {
-        value = null;
+        object v;
 
-        if (!_cachedValues.TryGetValue(key, out var v)) 
-            return base.GetRawValue(key, out value);
+        lock (_cachedValues)
+            if (!_cachedValues.TryGetValue(key, out v))
+                return base.GetRawValue(key, out value);
 
         if (v is JsonElement element)
             value = element.GetString();

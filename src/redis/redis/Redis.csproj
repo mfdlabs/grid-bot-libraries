@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Redis client used for easy interaction with Redis servers.</Description>
+
+    <Version>1.0.4</Version>
   </PropertyGroup>
 
   <ItemGroup>

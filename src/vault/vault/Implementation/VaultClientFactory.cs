@@ -83,7 +83,7 @@ public class VaultClientFactory : IVaultClientFactory
             var vaultCredential = Environment.GetEnvironmentVariable(_vaultCredentialEnvVar)
                                ?? Environment.GetEnvironmentVariable(_vaultTokenEnvVar);
 
-            if (string.IsNullOrWhiteSpace(vaultAddr)) throw new ApplicationException($"Required environment variable not found: {_vaultAddressEnvVar}");
+            if (string.IsNullOrWhiteSpace(vaultAddr)) return null;
             if (string.IsNullOrWhiteSpace(vaultCredential)) throw new ApplicationException($"Required environment variable not found: {_vaultCredentialEnvVar} or {_vaultTokenEnvVar}");
 
             return _cachedGlobalClient ??= GetClient(vaultAddr, vaultCredential);
