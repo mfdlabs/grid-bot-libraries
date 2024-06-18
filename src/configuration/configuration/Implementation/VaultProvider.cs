@@ -164,7 +164,17 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
 
         _logger?.Debug("VaultProvider: Setup for '{0}/{1}' to refresh every '{2}' interval!", Mount, Path, RefreshInterval);
 
-        _providers.Add(this);
+        lock (_providers)
+        {
+            if (_providers.Contains(this))
+            {
+                _logger?.Debug("VaultProvider: Skipping setup for '{0}/{1}' because it is already setup!", Mount, Path);
+
+                return;
+            }
+
+            _providers.Add(this);
+        }
 
         DoRefresh();
     }
@@ -173,21 +183,24 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     {
         while (true)
         {
-            var providers = _providers.ToArray();
-
-            foreach (var provider in providers)
+            lock (_providers)
             {
-                try
-                {
-                    provider.DoRefresh();
-                }
-                catch (Exception ex)
-                {
-                    _staticLogger?.Error(ex);
-                }
-            }
+                var providers = _providers.ToArray();
 
-            Thread.Sleep(RefreshInterval); // SetClient makes DoRefresh call.
+                foreach (var provider in providers)
+                {
+                    try
+                    {
+                        provider.DoRefresh();
+                    }
+                    catch (Exception ex)
+                    {
+                        _staticLogger?.Error(ex);
+                    }
+                }
+
+                Thread.Sleep(RefreshInterval); // SetClient makes DoRefresh call.
+            }
         }
     }
 
