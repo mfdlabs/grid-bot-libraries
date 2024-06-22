@@ -34,11 +34,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Move to Checkout Path
-        run: |
-          mkdir -p /_/_work/${{ github.repository }}/${{ github.sha }}
-          (shopt -s dotglob; mv * /_/_work/${{ github.repository }}/${{ github.sha }})
-
       - name: Setup .NET 6
         uses: actions/setup-dotnet@v3
         with:
@@ -46,13 +41,11 @@ jobs:
 
       # Build
       - name: Restore NuGet Packages
-        working-directory: /_/_work/${{ github.repository }}/${{ github.sha }}
         run: >-
           dotnet restore
           ${{ env.SOLUTION_FILE_NAME }}
 
       - name: Build Solution
-        working-directory: /_/_work/${{ github.repository }}/${{ github.sha }}
         run: >-
           dotnet build
           ${{ env.SOLUTION_FILE_NAME }}
@@ -60,7 +53,6 @@ jobs:
           -c Release
 
       - name: Run Tests
-        working-directory: /_/_work/${{ github.repository }}/${{ github.sha }}
         run: >-
           dotnet test
           ${{ env.SOLUTION_FILE_NAME }}
@@ -69,7 +61,6 @@ jobs:
           -c Release
 
       - name: Pack NuGet Packages
-        working-directory: /_/_work/${{ github.repository }}/${{ github.sha }}
         run: >-
           dotnet pack
           ${{ env.SOLUTION_FILE_NAME }}
@@ -87,13 +78,8 @@ jobs:
           retention-days: 1
           name: nuget-packages
           path: |
-            /_/_work/${{ github.repository }}/${{ github.sha }}/dist/*.nupkg
+            ./dist/*.nupkg
 
-      - name: Cleanup
-        if: always()
-        continue-on-error: true
-        run: |
-          rm -rf /_/_work/${{ github.repository }}/${{ github.sha }}
   # Upload to NuGet
   upload:
     runs-on: "ubuntu-latest"
