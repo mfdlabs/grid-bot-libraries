@@ -112,6 +112,7 @@ internal static class ManagedIpHelper
             try
             {
                 tcpTable = Marshal.AllocHGlobal(tcpTableLength);
+                
                 if (
                     IPHlpApi.GetExtendedTcpTable(
                         tcpTable, 

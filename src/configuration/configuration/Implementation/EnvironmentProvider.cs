@@ -14,13 +14,7 @@ public abstract class EnvironmentProvider : BaseProvider
     /// <inheritdoc cref="BaseProvider.SetRawValue{T}(string, T)"/>
     protected override void SetRawValue<T>(string variable, T value)
     {
-        var realValue = value.ToString();
-
-        if (typeof(T).IsArray)
-            realValue = string.Join(",", value as Array);
-
-        if (value is IDictionary dictionary)
-            realValue = string.Join("\n", dictionary.Keys.Cast<object>().Select(key => $"{key}={dictionary[key]}"));
+        var realValue = ConvertFrom(value, typeof(T));
 
         Environment.SetEnvironmentVariable(variable, realValue);
     }

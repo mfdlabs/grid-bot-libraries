@@ -40,7 +40,7 @@ public class LocalConsulClientProvider : IConsulClientProvider, INotifyPropertyC
 
     private void Settings_PropertyChanged(object sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == "ConsulAddress")
+        if (e.PropertyName == nameof(ISettings.ConsulAddress))
             GenerateClient();
     }
 

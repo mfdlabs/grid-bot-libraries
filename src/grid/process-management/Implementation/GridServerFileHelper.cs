@@ -29,22 +29,14 @@ public class GridServerFileHelper : IGridServerFileHelper
         object value;
 
         // Check if the current runtime is on a Windows machine
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            value = Registry.GetValue(
-                _Settings.GridServerRegistryKeyName,
-                _Settings.GridServerRegistryValueName,
-                null
-            );
-        }
-        else
-        {
-            value = Environment.GetEnvironmentVariable("GRID_SERVER_PATH");
-        }
+        value = Registry.GetValue(
+            _Settings.GridServerRegistryKeyName,
+            _Settings.GridServerRegistryValueName,
+            null
+        );
 
         if (value != null) return value as string;
-        if (throwIfNoGridServer)
-            throw new ApplicationException("The grid server was not correctly installed on the machine.");
+        if (throwIfNoGridServer) throw new ApplicationException("The grid server was not correctly installed on the machine.");
 
         return default;
     }

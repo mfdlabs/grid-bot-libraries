@@ -173,6 +173,7 @@ public abstract class JobManagerBase
             if (ResourceAllocationTracker.IsResourceAllocationCheckEnabled())
             {
                 ResourceAllocationTracker.UpdateResourceAllocation(ComputeAllocatedResource());
+
                 return ResourceAllocationTracker.IsResourceAvailable(resourceNeeded);
             }
 
@@ -209,12 +210,11 @@ public abstract class JobManagerBase
     {
         ActiveJobs.TryGetValue(job, out var instance);
 
-        if (instance != null && !instance.HasExited)
-        {
-            var time = DateTime.UtcNow.AddSeconds(expirationInSeconds);
-            if (instance.ExpirationTime < time)
-                instance.ExpirationTime = time;
-        }
+        if (instance == null || instance.HasExited) return;
+
+        var time = DateTime.UtcNow.AddSeconds(expirationInSeconds);
+        if (instance.ExpirationTime < time)
+            instance.ExpirationTime = time;
     }
 
     /// <summary>
@@ -454,62 +454,61 @@ public abstract class JobManagerBase
     private void ReadGridServerLocation(bool isStartup)
     {
         var newValue = GetLatestGridServerVersion();
+        if (GridServerVersion == newValue) return;
 
-        if (GridServerVersion != newValue)
+        Logger.Information("ReadGridServerLocation. GridServer version changed or loaded for the first time. GridServer version = {0}", newValue);
+
+        if (OnGridServerVersionChange(newValue, isStartup))
         {
-            Logger.Information("ReadGridServerLocation. GridServer version changed or loaded for the first time. GridServer version = {0}", newValue);
+            Logger.Information("ReadGridServerLocation. Successfully changed GridServer version. GridServer version = {0}", newValue);
 
-            if (OnGridServerVersionChange(newValue, isStartup))
-            {
-                Logger.Information("ReadGridServerLocation. Successfully changed GridServer version. GridServer version = {0}", newValue);
+            GridServerVersion = newValue;
+            KillOutOfDateReadyInstances();
 
-                GridServerVersion = newValue;
-                KillOutOfDateReadyInstances();
-
-                return;
-            }
-
-            Logger.Warning(
-                "ReadGridServerLocation. Failed to change GridServer version. Failed GridServer Version = {0}. Current GridServer Version = {1}",
-                newValue,
-                GridServerVersion
-            );
+            return;
         }
+
+        Logger.Warning(
+            "ReadGridServerLocation. Failed to change GridServer version. Failed GridServer Version = {0}. Current GridServer Version = {1}",
+            newValue,
+            GridServerVersion
+        );
     }
 
     private void KillOutOfDateReadyInstances()
     {
         var readyInstances = new BlockingCollection<IGridServerInstance>(new ConcurrentStack<IGridServerInstance>());
 
-        using var enumerator = ((IEnumerable<IGridServerInstance>)Interlocked.Exchange(ref ReadyInstances, readyInstances)).GetEnumerator();
+        var currentReadyInstances = (IEnumerable<IGridServerInstance>)Interlocked.Exchange(ref ReadyInstances, readyInstances);
 
-        while (enumerator.MoveNext())
+        foreach (var readyInstance in currentReadyInstances)
         {
-            var readyInstance = enumerator.Current;
-            if (readyInstance.Version != GridServerVersion)
+            if (readyInstance.Version == GridServerVersion)
             {
-                try
-                {
-                    Logger.Information(
-                        "KillOldVersionsOfReadyInstances. Killed a ready instance with version: {0}",
-                        readyInstance.Version
-                    );
+                Logger.Information("KillOldVersionsOfReadyInstances. Found a ready instance with the current version. Exiting loop.");
 
-                    readyInstance.Dispose();
+                ReadyInstances.Add(readyInstance);
 
-                    continue;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error("KillOldVersionsOfReadyInstances. Failed to kill a ready instance. Exception: {0}", ex);
-
-                    continue;
-                }
+                continue;
             }
 
-            Logger.Information("KillOldVersionsOfReadyInstances. Found a ready instance with the current version. Exiting loop.");
+            try
+            {
+                Logger.Information(
+                    "KillOldVersionsOfReadyInstances. Killed a ready instance with version: {0}",
+                    readyInstance.Version
+                );
 
-            ReadyInstances.Add(readyInstance);
+                readyInstance.Dispose();
+
+                continue;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("KillOldVersionsOfReadyInstances. Failed to kill a ready instance. Exception: {0}", ex);
+
+                continue;
+            }
         }
     }
 
@@ -526,6 +525,7 @@ public abstract class JobManagerBase
                 if (ctsList.Count < desiredNumberOfThreads)
                 {
                     var threadsToCreate = desiredNumberOfThreads - ctsList.Count;
+
                     Logger.Debug(
                         "ManagePopulateReadyInstanceThreads. Need to create {0} threads. SettingValue = {1}, threadCount = {2}",
                         threadsToCreate,
@@ -624,21 +624,21 @@ public abstract class JobManagerBase
                         Logger.Error("PopulateReadyInstances. Failed to start GridServer instance on port {0}. ThreadId: {1}.", instance.Port, threadId);
 
                         _LastInstanceCreationFailed = true;
-                    }
-                    else
-                    {
-                        sw.Stop();
-                        Logger.Information(
-                            "PopulateReadyInstances. GridServer instance started and validated connectivity. Port: {0}. ThreadId: {1}. Instance ID: {2}. Version: {3}",
-                            instance.Port,
-                            threadId,
-                            instance.Id,
-                            instance.Version
-                        );
 
-                        _LastInstanceCreationFailed = false;
-                        ReadyInstances.Add(instance);
+                        continue;
                     }
+
+                    sw.Stop();
+                    Logger.Information(
+                        "PopulateReadyInstances. GridServer instance started and validated connectivity. Port: {0}. ThreadId: {1}. Instance ID: {2}. Version: {3}",
+                        instance.Port,
+                        threadId,
+                        instance.Id,
+                        instance.Version
+                    );
+
+                    _LastInstanceCreationFailed = false;
+                    ReadyInstances.Add(instance);
                 }
                 catch (Exception ex)
                 {
@@ -734,21 +734,20 @@ public abstract class JobManagerBase
                         Logger.Warning("ClearExpiredJobs. Closing expired job {0} because GridServer instance has already exited.", activeJob.Key);
 
                         DoCloseJob(activeJob.Key, false);
-                    }
-                    else
-                    {
-                        if (activeJob.Value.ExpirationTime < cutoffTime)
-                        {
-                            Logger.Warning(
-                                "ClearExpiredJobs. Closing expired job {0} because it has expired on {1} and cutoff time is {2}",
-                                activeJob.Key,
-                                activeJob.Value.ExpirationTime,
-                                cutoffTime
-                            );
 
-                            DoCloseJob(activeJob.Key, false);
-                        }
+                        continue;
                     }
+
+                    if (activeJob.Value.ExpirationTime >= cutoffTime) continue;
+                    
+                    Logger.Warning(
+                        "ClearExpiredJobs. Closing expired job {0} because it has expired on {1} and cutoff time is {2}",
+                        activeJob.Key,
+                        activeJob.Value.ExpirationTime,
+                        cutoffTime
+                    );
+
+                    DoCloseJob(activeJob.Key, false);
                 }
             }
             catch (Exception ex)

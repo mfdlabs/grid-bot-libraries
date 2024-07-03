@@ -19,16 +19,21 @@ internal static class ExponentialBackoff
     {
         if (maxAttempts > CeilingForMaxAttempts) 
             throw new ArgumentOutOfRangeException($"{maxAttempts} must be less than or equal to {CeilingForMaxAttempts}");
+
         if (attempt > maxAttempts) attempt = maxAttempts;
+
         var delay = baseDelay.Multiply(Math.Pow(2, attempt - 1));
         if (delay > maxDelay || delay < TimeSpan.Zero) delay = maxDelay;
+
         var random = nextRandomDouble();
+
         delay = jitter switch
         {
             Jitter.Full => delay.Multiply(random),
             Jitter.Equal => delay.Multiply(0.5 + random * 0.5),
             _ => delay
         };
+        
         return delay;
     }
 }

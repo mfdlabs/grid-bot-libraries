@@ -168,6 +168,8 @@ public class LocalIpAddressProvider : ILocalIpAddressProvider, INotifyPropertyCh
             var newIpAddress = newIpAddresses.First();
             var oldIpAddress = addressFamily == AddressFamily.InterNetwork ? AddressV4 : AddressV6;
 
+            if (newIpAddress.Equals(oldIpAddress)) return;
+
             if (addressFamily == AddressFamily.InterNetwork)
                 AddressV4 = newIpAddress;
             else
