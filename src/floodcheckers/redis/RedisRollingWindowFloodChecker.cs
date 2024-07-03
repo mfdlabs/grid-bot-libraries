@@ -125,12 +125,10 @@ public class RedisRollingWindowFloodChecker : BaseRedisFloodChecker, IRetryAfter
 
         RedisClient.Execute(bucketKey, db => db.SortedSetAdd(bucketKey, Guid.NewGuid().ToString(), timeNow.Ticks, CommandFlags.FireAndForget));
 
-        if (bucketKey != _LastBucketUpdated)
-        {
-            RedisClient.Execute(bucketKey, db => db.KeyExpire(bucketKey, GetBucketExpiryTimeSpan(window), CommandFlags.FireAndForget));
+        if (bucketKey == _LastBucketUpdated) return;
 
-            _LastBucketUpdated = bucketKey;
-        }
+        RedisClient.Execute(bucketKey, db => db.KeyExpire(bucketKey, GetBucketExpiryTimeSpan(window), CommandFlags.FireAndForget));
+        _LastBucketUpdated = bucketKey;
     }
 
     /// <inheritdoc cref="BaseRedisFloodChecker.DoReset"/>

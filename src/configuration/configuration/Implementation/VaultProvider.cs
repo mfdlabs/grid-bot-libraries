@@ -85,10 +85,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
 
         _logger?.Debug("VaultProvider: Set value in vault at path '{0}/{1}/{2}'", Mount, Path, variable);
 
-        var realValue = value.ToString();
-
-        if (typeof(T).IsArray)
-            realValue = string.Join(",", (value as Array).Cast<object>().ToArray());
+        var realValue = ConvertFrom(value, typeof(T));
 
         _cachedValues[variable] = realValue;
 

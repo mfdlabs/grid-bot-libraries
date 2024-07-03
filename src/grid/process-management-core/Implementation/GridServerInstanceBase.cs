@@ -125,27 +125,27 @@ public abstract class GridServerInstanceBase : IGridServerInstance
             if (!forceTry && HasExited)
                 throw new Exception(string.Format("Failed to connect to port {0} because GridServer container has already exited.", Port));
 
-            using (var client = new TcpClient())
+            using var client = new TcpClient();
+
+            try
             {
-                try
-                {
-                    client.Client.Connect(_LocalHostIpAddress, Port);
+                client.Client.Connect(_LocalHostIpAddress, Port);
 
-                    Logger.Information(
-                        "Port successfully opened, Port: {0}, Attempts: {1}, AttemptTime: {2}, TotalTime: {3}",
-                        Port,
-                        attempt,
-                        sw.ElapsedMilliseconds,
-                        stopwatch.ElapsedMilliseconds
-                    );
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Debug("Failed to connect, Port: {0}, Attempts: {1}, AttemptTime: {2}. Error: {3}", Port, attempt, sw.ElapsedMilliseconds, ex);
+                Logger.Information(
+                    "Port successfully opened, Port: {0}, Attempts: {1}, AttemptTime: {2}, TotalTime: {3}",
+                    Port,
+                    attempt,
+                    sw.ElapsedMilliseconds,
+                    stopwatch.ElapsedMilliseconds
+                );
+                
+                return;
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug("Failed to connect, Port: {0}, Attempts: {1}, AttemptTime: {2}. Error: {3}", Port, attempt, sw.ElapsedMilliseconds, ex);
 
-                    innerException = ex.ToString();
-                }
+                innerException = ex.ToString();
             }
 
             Thread.Sleep(_Settings.GridServerWaitForTcpSleepInterval);

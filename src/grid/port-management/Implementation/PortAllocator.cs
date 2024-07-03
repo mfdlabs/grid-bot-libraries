@@ -54,6 +54,7 @@ public class PortAllocator : IPortAllocator
                 if (IsPortInUse(port))
                 {
                     _logger.Warning("Chosen random port, {0}, is already in use", port);
+                    
                     continue;
                 }
 

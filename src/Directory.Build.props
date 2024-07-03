@@ -16,15 +16,15 @@
     <!--Executes
     the Git Commands to get the Hash and Branch-->
     <Exec Command="git rev-parse HEAD" ConsoleToMSBuild="true"
-      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitHash)' == '' " WorkingDirectory="$(SolutionDir)">
+      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitHash)' == '' " WorkingDirectory="$(RootDirectory)">
       <Output TaskParameter="ConsoleOutput" PropertyName="CommitHash" />
     </Exec>
     <Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true"
-      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitShortHash)' == '' "  WorkingDirectory="$(SolutionDir)">
+      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitShortHash)' == '' "  WorkingDirectory="$(RootDirectory)">
       <Output TaskParameter="ConsoleOutput" PropertyName="CommitShortHash" />
     </Exec>
     <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true"
-      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitBranch)' == '' "  WorkingDirectory="$(SolutionDir)">
+      StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitBranch)' == '' "  WorkingDirectory="$(RootDirectory)">
       <Output TaskParameter="ConsoleOutput" PropertyName="CommitBranch" />
     </Exec>
 
@@ -50,8 +50,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="RootDirectory">
-    <RootDirectory Condition="'$(SolutionDir)' != ''">$(SolutionDir)</RootDirectory>
-    <RootDirectory Condition="'$(SolutionDir)' == ''">$(MSBuildThisFileDirectory)../</RootDirectory>
+    <RootDirectory>$(MSBuildThisFileDirectory)../</RootDirectory>
   </PropertyGroup>
 
   <PropertyGroup Label="PackageProperties" Condition="'$(IsTestProject)' != 'true'">
