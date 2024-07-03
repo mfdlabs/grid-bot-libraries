@@ -23,6 +23,7 @@ internal static class TcpHealthCheck
         // busy wait untill our service is ready to accept connections
         var bAvailable = false;
         var waitcount = 0;
+
         while (!bAvailable)
         {
             using var tcp = new TcpClient();
@@ -59,16 +60,14 @@ internal static class TcpHealthCheck
         var row = ManagedIpHelper.GetExtendedTcpTable(true)
             .FirstOrDefault(p => p.LocalEndPoint.Address.ToString() == hostname && p.LocalEndPoint.Port == port);
 
-        if (row != null)
+        if (row == null) return false;
+
+        try
         {
-            try {
-                process = Process.GetProcessById((int)row.ProcessId);
+            process = Process.GetProcessById((int)row.ProcessId);
 
-                return true;
-            }
-            catch { }
+            return true;
         }
-
-        return false;
+        catch { return false; }
     }
 }

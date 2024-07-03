@@ -159,17 +159,13 @@ public static class Extensions
         var name = expression.GetPropertyName();
         provider.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == name)
-            {
-                var newValue = getter(provider);
+            if (e.PropertyName != name) return;
 
-                if (newValue == null || !newValue.Equals(value))
-                {
-                    propertyChangeHandler.SafelyInvoke(logger);
+            var newValue = getter(provider);
+            if (newValue != null && newValue.Equals(value)) return;
 
-                    value = newValue;
-                }
-            }
+            propertyChangeHandler.SafelyInvoke(logger);
+            value = newValue;
         };
     }
 
@@ -237,17 +233,13 @@ public static class Extensions
         var name = GetPropertyName(expression);
         provider.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == name)
-            {
-                var newValue = getter(provider);
+            if (e.PropertyName != name) return;
 
-                if (newValue == null || !newValue.Equals(value))
-                {
-                    propertyChangeHandler.SafelyInvoke(newValue, logger);
+            var newValue = getter(provider);
+            if (newValue != null && newValue.Equals(value)) return;
 
-                    value = newValue;
-                }
-            }
+            propertyChangeHandler.SafelyInvoke(newValue, logger);
+            value = newValue;
         };
     }
 

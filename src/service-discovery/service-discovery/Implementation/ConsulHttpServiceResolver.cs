@@ -161,7 +161,7 @@ public class ConsulHttpServiceResolver : IServiceResolver, INotifyPropertyChange
 
         var endpoints = ParseCatalogServiceResults(queryResult.Response);
 
-        _Logger.Information(
+        _Logger.Debug(
             UpdateEndpointsIfChanged(endpoints)
                ? () => string.Format("Fetched new endpoints for {0}: {1}", serviceName, string.Join(", ", endpoints))
                : () => string.Format("Endpoints for {0} have not changed.", serviceName)

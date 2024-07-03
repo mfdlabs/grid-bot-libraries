@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Description>Shared library to help with resolution of addresses from sources like Consul.</Description>
 
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
   </PropertyGroup>
 
   <ItemGroup>

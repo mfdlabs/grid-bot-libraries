@@ -78,6 +78,7 @@ public sealed class GridServerProcess : GridServerInstanceBase
     private bool WaitForProcessStart()
     {
         var sw = Stopwatch.StartNew();
+
         try
         {
             WaitForServiceToBecomeAvailable(false, sw);
@@ -105,7 +106,6 @@ public sealed class GridServerProcess : GridServerInstanceBase
         using var soap = GetSoapInterface(10000);
 
 #if !PRE_JSON_EXECUTION
-
         var command = new ExecuteScriptCommand(
             new("highavailability", new Dictionary<string, object>())
         );

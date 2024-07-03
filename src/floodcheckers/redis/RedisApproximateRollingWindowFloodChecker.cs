@@ -123,12 +123,10 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
 
         RedisClient.Execute(bucketKey, db => db.StringIncrement(bucketKey));
 
-        if (bucketKey != _LastBucketUpdated)
-        {
-            RedisClient.Execute(bucketKey, db => db.KeyExpire(bucketKey, GetBucketExpiryTimeSpan(window), CommandFlags.FireAndForget));
+        if (bucketKey == _LastBucketUpdated) return;
 
-            _LastBucketUpdated = bucketKey;
-        }
+        RedisClient.Execute(bucketKey, db => db.KeyExpire(bucketKey, GetBucketExpiryTimeSpan(window), CommandFlags.FireAndForget));
+        _LastBucketUpdated = bucketKey;
     }
 
     /// <inheritdoc cref="BaseRedisFloodChecker.DoReset"/>
@@ -141,8 +139,9 @@ public class RedisApproximateRollingWindowFloodChecker : BaseRedisFloodChecker, 
         RedisClient.Execute(currentBucketKey, db => db.KeyDelete(currentBucketKey));
 
         var previousBucketKey = GetBucketKey(timeNow - window, window);
-        if (previousBucketKey != currentBucketKey)
-            RedisClient.Execute(previousBucketKey, db => db.KeyDelete(previousBucketKey));
+        if (previousBucketKey == currentBucketKey) return;
+        
+        RedisClient.Execute(previousBucketKey, db => db.KeyDelete(previousBucketKey));
     }
 
     /// <inheritdoc cref="BaseRedisFloodChecker.DoGetCount"/>

@@ -99,8 +99,7 @@ public abstract class BaseRedisFloodChecker
         int limit = 0;
         int count = 0;
 
-        if (!IsEnabled())
-            return new FloodCheckerStatus(false, limit, count, Category);
+        if (!IsEnabled()) return new FloodCheckerStatus(false, limit, count, Category);
 
         try
         {
@@ -221,9 +220,9 @@ public abstract class BaseRedisFloodChecker
     /// <param name="category">The category.</param>
     protected virtual void RaiseOnFloodedEvent(string category)
     {
-        if (GlobalFloodCheckerEventLogger != null)
-            if (RecordGlobalFloodedEvents?.Invoke() == true)
-                GlobalFloodCheckerEventLogger.RecordFloodCheckerIsFlooded(category);
+        if (GlobalFloodCheckerEventLogger == null || RecordGlobalFloodedEvents?.Invoke() != true) return;
+
+        GlobalFloodCheckerEventLogger.RecordFloodCheckerIsFlooded(category);
     }
 
     /// <summary>
@@ -239,6 +238,7 @@ public abstract class BaseRedisFloodChecker
         if (windowPeriod < minimumWindowPeriod && windowPeriod.TotalMilliseconds > 0)
         {
             int factor = (int)Math.Ceiling(minimumWindowPeriod.TotalMilliseconds / windowPeriod.TotalMilliseconds);
+            
             limit *= factor;
         }
 
@@ -258,7 +258,8 @@ public abstract class BaseRedisFloodChecker
             windowPeriod = TimeSpan.FromMilliseconds(
                 (int)Math.Ceiling(minimumWindowPeriod.TotalMilliseconds / 
                 windowPeriod.TotalMilliseconds) * 
-                windowPeriod.TotalMilliseconds);
+                windowPeriod.TotalMilliseconds
+            );
 
         return windowPeriod;
     }
