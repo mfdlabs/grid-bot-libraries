@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Helpers for configuration in applications.</Description>
-
-    <Version>1.0.5</Version>
   </PropertyGroup>
 
   <ItemGroup>

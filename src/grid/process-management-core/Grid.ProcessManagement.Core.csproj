@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Shared library for core interaction with grid server processes!</Description>
-
-    <Version>1.0.5</Version>
     <RootNamespace>Grid</RootNamespace>
   </PropertyGroup>
 

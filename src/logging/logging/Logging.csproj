@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Shared logging library!</Description>
-
-    <Version>1.0.4</Version>
   </PropertyGroup>
 
   <PropertyGroup>

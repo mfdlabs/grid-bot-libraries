@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>SOAP library shared by grid-server processes!</Description>
-
-    <Version>1.0.4</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>HTTP client used to interact with Roblox's Thumbnails API Site.</Description>
-
-    <Version>1.0.4</Version>
   </PropertyGroup>
 
   <ItemGroup>

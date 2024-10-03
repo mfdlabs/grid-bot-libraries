@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Shared library for port allocation on grid-servers!</Description>
-
-    <Version>1.0.5</Version>
     <RootNamespace>Grid</RootNamespace>
   </PropertyGroup>
 

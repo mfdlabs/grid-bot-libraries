@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Library used for IP address parsing and more!</Description>
-
-    <Version>1.0.6</Version>
   </PropertyGroup>
 
   <ItemGroup>
