@@ -1,11 +1,11 @@
 ﻿namespace Configuration;
 
-using VaultSharp;
+using System;
 
 /// <summary>
 /// Represents a <see cref="IConfigurationProvider"/> backed by Vault.
 /// </summary>
-public interface IVaultProvider : IConfigurationProvider
+public interface IVaultProvider : IConfigurationProvider, IDisposable
 {
     /// <summary>
     /// Gets the mount path.
