@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Shared library containing models used by grid-servers for specific script execution actions.</Description>
-
-    <Version>1.0.4</Version>
   </PropertyGroup>
 
   <!-- Embed all Scripts/*.lua files into the assembly -->

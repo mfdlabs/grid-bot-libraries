@@ -15,7 +15,9 @@ using VaultSharp.Core;
 
 using Vault;
 using Logging;
+
 using Threading.Extensions;
+
 
 /// <summary>
 /// Implementation for <see cref="BaseProvider"/> via Vault.
@@ -40,19 +42,25 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
         nameof(Path),
     };
 
-    private static readonly ConcurrentBag<VaultProvider> _providers = new();
+    private static readonly ConcurrentDictionary<string, VaultProvider> _providers = new();
 
-    private IDictionary<string, object> _cachedValues = new Dictionary<string, object>();
+    private bool _disposed = false;
 
+    /// <summary>
+    /// The raw cached values.
+    /// </summary>
+    protected IDictionary<string, object> _CachedValues = new Dictionary<string, object>();
+
+    private static readonly ManualResetEvent _refreshRequestEvent = new(false);
     private static readonly Thread _refreshThread;
     private static readonly IVaultClient _client = VaultClientFactory.Singleton.GetClient();
     private static readonly ILogger _staticLogger = Logger.Singleton;
 
     /// <inheritdoc cref="IVaultProvider.Mount"/>
-    public abstract string Mount { get; }
+    public virtual string Mount { get; set; }
 
     /// <inheritdoc cref="IVaultProvider.Path"/>
-    public abstract string Path { get; }
+    public virtual string Path { get; set; }
 
     /// <summary>
     /// Gets the refresh interval for the settings provider.
@@ -78,16 +86,25 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
         _staticLogger?.Debug("VaultProvider: Started refresh thread!");
     }
 
+    /// <summary>
+    /// Refresh all the currently registered providers immediately, this method is asynchronous
+    /// and will return immediately.
+    /// </summary>
+    public static void RefreshAllProviders()
+    {
+        _refreshRequestEvent.Set();
+    }
+
     /// <inheritdoc cref="BaseProvider.SetRawValue{T}(string, T)"/>
     protected override void SetRawValue<T>(string variable, T value)
     {
         if (_client == null) return;
 
-        _logger?.Debug("VaultProvider: Set value in vault at path '{0}/{1}/{2}'", Mount, Path, variable);
+        _logger?.Information("VaultProvider: Set value in vault at path '{0}/{1}/{2}'", Mount, Path, variable);
 
         var realValue = ConvertFrom(value, typeof(T));
 
-        _cachedValues[variable] = realValue;
+        _CachedValues[variable] = realValue;
 
         ApplyCurrent();
     }
@@ -100,7 +117,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
         // Build the current from the getters.
         var values = GetLatestValues();
 
-        _logger?.Debug("VaultProvider: Writing secret '{0}/{1}' to Vault!", Mount, Path);
+        _logger?.Information("VaultProvider: Writing secret '{0}/{1}' to Vault!", Mount, Path);
 
         _client?.V1.Secrets.KeyValue.V2.WriteSecretAsync(
             mountPoint: Mount,
@@ -128,7 +145,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
 
             try
             {
-                _logger?.Debug("VaultProvider: Fetching initial value for {0}.{1}", GetType().Name, getterName);
+                _logger?.Verbose("VaultProvider: Fetching initial value for {0}.{1}", GetType().Name, getterName);
 
                 var value = getter.GetGetMethod().Invoke(this, Array.Empty<object>());
                 var realValue = value?.ToString() ?? string.Empty;
@@ -140,7 +157,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
             }
             catch (TargetInvocationException ex)
             {
-                _logger?.Debug("VaultProvider: Error occurred when fetching getter for '{0}.{1}': {2}", GetType().Name, getterName, ex.InnerException.Message);
+                _logger?.Verbose("VaultProvider: Error occurred when fetching getter for '{0}.{1}': {2}", GetType().Name, getterName, ex.InnerException.Message);
 
                 newCachedValues.Add(getterName, string.Empty);
             }
@@ -153,24 +170,42 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     /// Construct a new instance of <see cref="VaultProvider"/>
     /// </summary>
     /// <param name="logger">The <see cref="ILogger"/></param>
-    protected VaultProvider(ILogger logger = null)
+    /// <param name="periodicRefresh">Should this periodically refresh?</param>
+    protected VaultProvider(ILogger logger = null, bool periodicRefresh = true)
     {
         logger ??= Logger.Singleton;
 
         SetLogger(logger);
 
-        _logger?.Debug("VaultProvider: Setup for '{0}/{1}' to refresh every '{2}' interval!", Mount, Path, RefreshInterval);
-
-        if (_providers.Contains(this))
+        if (periodicRefresh)
         {
-            _logger?.Debug("VaultProvider: Skipping setup for '{0}/{1}' because it is already setup!", Mount, Path);
+            _logger?.Debug("VaultProvider: Setup for '{0}/{1}' to refresh every '{2}' interval!", Mount, Path, RefreshInterval);
 
-            return;
+            if (_providers.TryGetValue(GetType().ToString(), out _))
+            {
+                _logger?.Debug("VaultProvider: Skipping setup for '{0}/{1}' because it is already setup!", Mount, Path);
+
+                return;
+            }
+
+            _providers.TryAdd(GetType().ToString(), this);
         }
 
-        _providers.Add(this);
-
         DoRefresh();
+    }
+
+    /// <summary>
+    /// Construct a new instance of <see cref="VaultProvider"/>
+    /// </summary>
+    /// <param name="mount">The <see cref="Mount"/></param>
+    /// <param name="path">The <see cref="Path"/></param>
+    /// <param name="logger">The <see cref="ILogger"/></param>
+    /// <param name="periodicRefresh">Should this periodically refresh?</param>
+    protected VaultProvider(string mount, string path = "", ILogger logger = null, bool periodicRefresh = true)
+        : this(logger, periodicRefresh)
+    {
+        Mount = mount;
+        Path = path;
     }
 
     private static void RefreshThread()
@@ -179,11 +214,11 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
         {
             var providers = _providers.ToArray();
 
-            foreach (var provider in providers)
+            foreach (var kvp in providers)
             {
                 try
                 {
-                    provider.DoRefresh();
+                    kvp.Value.DoRefresh();
                 }
                 catch (Exception ex)
                 {
@@ -191,7 +226,8 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
                 }
             }
 
-            Thread.Sleep(RefreshInterval); // SetClient makes DoRefresh call.
+            _refreshRequestEvent.WaitOne(RefreshInterval); // SetClient makes DoRefresh call.
+            _refreshRequestEvent.Reset();
         }
     }
 
@@ -211,8 +247,8 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
             var values = secret.Data.Data;
             InvokePropertyChangedForChangedValues(values);
 
-            lock (_cachedValues)
-                _cachedValues = values;
+            lock (_CachedValues)
+                _CachedValues = values;
         }
         catch (VaultApiException ex)
         {
@@ -245,7 +281,6 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
             if (property == null)
             {
                 _logger?.Debug("VaultProvider: Skipping property changed handler for '{0}' because settings provider '{1}' does not define it!", name, this);
-                _logger?.Warning("{0}: Unknown property '{1}', make sure it is defined in the settings provider or has a appropriate [{2}] attribute!", GetType().Name, name, nameof(SettingNameAttribute));
 
                 return false;
             }
@@ -258,7 +293,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
 
     private void InvokePropertyChangedForChangedValues(IDictionary<string, object> newValues)
     {
-        if (_cachedValues.Count == 0)
+        if (_CachedValues.Count == 0)
         {
             foreach (var kvp in newValues)
             {
@@ -272,7 +307,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
                 var propertyName = kvp.Key;
                 if (!HasProperty(ref propertyName)) continue;
 
-                _logger?.Debug("VaultProvider: Invoking property changed handler for '{0}'", propertyName);
+                _logger?.Verbose("VaultProvider: Invoking property changed handler for '{0}'", propertyName);
 
                 PropertyChanged?.Invoke(this, new(propertyName));
             }
@@ -282,7 +317,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
 
         foreach (var kvp in newValues)
         {
-            if (_cachedValues.TryGetValue(kvp.Key, out var value))
+            if (_CachedValues.TryGetValue(kvp.Key, out var value))
                 if (value.ToString().Equals(kvp.Value.ToString())) continue;
 
             if (_propertyNamesIgnored.Contains(kvp.Key))
@@ -309,8 +344,8 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     {
         object v;
 
-        lock (_cachedValues)
-            if (!_cachedValues.TryGetValue(key, out v))
+        lock (_CachedValues)
+            if (!_CachedValues.TryGetValue(key, out v))
                 return base.GetRawValue(key, out value);
 
         if (v is JsonElement element)
@@ -319,5 +354,16 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
             value = v.ToString();
 
         return true;
+    }
+
+    /// <inheritdoc cref="IDisposable.Dispose"/>
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        GC.SuppressFinalize(this);
+
+        _providers.TryRemove(GetType().ToString(), out _);
+        _disposed = true;
     }
 }

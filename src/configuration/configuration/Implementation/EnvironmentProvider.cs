@@ -1,8 +1,6 @@
 ﻿namespace Configuration;
 
 using System;
-using System.Linq;
-using System.Collections;
 
 /// <summary>
 /// Implementation for <see cref="BaseProvider"/> that uses Environment variables.

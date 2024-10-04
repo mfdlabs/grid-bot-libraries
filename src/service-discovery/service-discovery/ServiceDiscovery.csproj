@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Shared library to help with resolution of addresses from sources like Consul.</Description>
-
-    <Version>1.0.5</Version>
   </PropertyGroup>
 
   <ItemGroup>

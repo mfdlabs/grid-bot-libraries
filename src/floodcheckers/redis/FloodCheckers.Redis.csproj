@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Library for interacting with Redis based flood checkers!</Description>
-
-    <Version>1.0.5</Version>
   </PropertyGroup>
 
   <ItemGroup>

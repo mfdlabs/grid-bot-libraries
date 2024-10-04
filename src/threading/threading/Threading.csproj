@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Helpers to aid with multi-threaded environments.</Description>
-
-    <Version>1.0.4</Version>
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
 

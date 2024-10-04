@@ -40,6 +40,8 @@
     <Copyright>Copyright © $(Company) $([System.DateTime]::Now.ToString(`yyyy`)). All rights reserved.</Copyright>
     <Authors>$(Company);Nikita Petko</Authors>
 
+    <VersionPrefix>1.0.9</VersionPrefix>
+
     <RepositoryUrl>https://github.com/mfdlabs/grid-bot-libraries</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
