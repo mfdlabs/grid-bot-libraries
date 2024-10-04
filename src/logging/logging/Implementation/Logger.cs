@@ -17,6 +17,9 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 #endif
 
+using Windows.Win32;
+using Windows.Win32.System.Console;
+
 // ReSharper disable LocalizableElement
 // ReSharper disable InconsistentNaming
 // ReSharper disable UseStringInterpolationWhenPossible
@@ -134,6 +137,35 @@ public class Logger : ILogger
             )
             { AutoFlush = true }
         );
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+
+        unsafe
+        {
+            CONSOLE_MODE lpMode;
+
+            var hStdout = PInvoke.GetStdHandle(STD_HANDLE.STD_OUTPUT_HANDLE);
+            if (PInvoke.GetConsoleMode(hStdout, &lpMode))
+            {
+                if (!lpMode.HasFlag(CONSOLE_MODE.ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+                {
+                    lpMode |= CONSOLE_MODE.ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+                    PInvoke.SetConsoleMode(hStdout, lpMode);
+                }
+            }
+
+            var hStderr = PInvoke.GetStdHandle(STD_HANDLE.STD_ERROR_HANDLE);
+            if (PInvoke.GetConsoleMode(hStderr, &lpMode))
+            {
+                if (!lpMode.HasFlag(CONSOLE_MODE.ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+                {
+                    lpMode |= CONSOLE_MODE.ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+                    PInvoke.SetConsoleMode(hStderr, lpMode);
+                }
+            }
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -240,7 +272,7 @@ public class Logger : ILogger
     //////////////////////////////////////////////////////////////////////////////
 
     private string _name;
-    private LogLevel _logLevel;
+    private Func<LogLevel> _logLevelGetter;
     private bool _logToConsole;
     private bool _logToFileSystem;
     private bool _logThreadId;
@@ -300,6 +332,11 @@ public class Logger : ILogger
             return _hasTerminal ??= false;
         }
     }
+
+    private static string _format(string format, params object[] args)
+        => args is { Length: > 0 }
+            ? string.Format(format, args)
+            : format;
 
     private static string _getCurrentThreadIdFormatted() => Thread.CurrentThread.ManagedThreadId
         .ToString("x")
@@ -479,15 +516,10 @@ public class Logger : ILogger
     /// Constructs the full non-color log message.
     /// </summary>
     /// <param name="logLevel">The log level.</param>
-    /// <param name="format">The format string.</param>
-    /// <param name="args">The args for the format.</param>
+    /// <param name="messageGetter">The message getter.</param>
     /// <returns>The constructed string.</returns>
-    protected string _constructNonColorLogMessage(LogLevel logLevel, string format, params object[] args)
+    protected string _constructNonColorLogMessage(LogLevel logLevel, Func<string> messageGetter)
     {
-        var formattedMessage = args is { Length: 0 }
-            ? format
-            : string.Format(format, args);
-
         if (_cutLogPrefix)
             return string.Format(
                 "[{0}]{1}{2}{3}{4}[{5}] {6}\n",
@@ -497,7 +529,7 @@ public class Logger : ILogger
                 Logger._getConstructedCustomNonColorLogPrefix(this._logPrefixes),
                 Logger._getConstructedCustomNonColorLogPrefix(Logger._globalLogPrefixes),
                 logLevel.ToString().ToUpper(),
-                formattedMessage
+                messageGetter()
             );
 
         return string.Format(
@@ -509,7 +541,7 @@ public class Logger : ILogger
             Logger._getConstructedCustomNonColorLogPrefix(this._logPrefixes),
             Logger._getConstructedCustomNonColorLogPrefix(Logger._globalLogPrefixes),
             logLevel.ToString().ToUpper(),
-            formattedMessage
+            messageGetter()
         );
     }
 
@@ -518,15 +550,10 @@ public class Logger : ILogger
     /// </summary>
     /// <param name="logLevel">The log level.</param>
     /// <param name="color">The log color.</param>
-    /// <param name="format">The format string.</param>
-    /// <param name="args">The args for the format.</param>
+    /// <param name="messageGetter">The format string.</param>
     /// <returns>The constructed string.</returns>
-    protected string _constructColorLogMessage(LogLevel logLevel, Logger.LogColor color, string format, params object[] args)
+    protected string _constructColorLogMessage(LogLevel logLevel, Logger.LogColor color, Func<string> messageGetter)
     {
-        var formattedMessage = args is { Length: 0 }
-            ? format
-            : string.Format(format, args);
-
         if (_cutLogPrefix)
             return string.Format(
                 "{0}{1}{2}{3}{4}{5} {6}{7}{8}\n",
@@ -537,7 +564,7 @@ public class Logger : ILogger
                 Logger._getConstructedCustomColorLogPrefix(Logger._globalLogPrefixes),
                 Logger._getColorSection(color, logLevel.ToString().ToUpper()),
                 Logger._getAnsiColorByLogColor(color),
-                formattedMessage,
+                messageGetter(),
                 Logger._getAnsiColorByLogColor(LogColor.Reset)
             );
 
@@ -551,12 +578,12 @@ public class Logger : ILogger
             Logger._getConstructedCustomColorLogPrefix(Logger._globalLogPrefixes),
             Logger._getColorSection(color, logLevel.ToString().ToUpper()),
             Logger._getAnsiColorByLogColor(color),
-            formattedMessage,
+            messageGetter(),
             Logger._getAnsiColorByLogColor(LogColor.Reset)
         );
     }
 
-    private void _writeLogToFileSystem(LogLevel logLevel, string format, params object[] args)
+    private void _writeLogToFileSystem(LogLevel logLevel, Func<string> messageGetter)
     {
         lock (this._fileSystemLock)
         {
@@ -570,7 +597,7 @@ public class Logger : ILogger
 
             try
             {
-                this._lockedFileWriteStream?.Write(this._constructNonColorLogMessage(logLevel, format, args));
+                this._lockedFileWriteStream?.Write(this._constructNonColorLogMessage(logLevel, messageGetter));
             }
             catch (Exception ex)
             {
@@ -582,31 +609,31 @@ public class Logger : ILogger
         }
     }
 
-    private void _writeLogToConsole(LogLevel logLevel, Logger.LogColor color, string format, params object[] args)
+    private void _writeLogToConsole(LogLevel logLevel, Logger.LogColor color, Func<string> messageGetter)
     {
         lock (this._consoleLock)
         {
             if (!this._logToConsole) return;
 
-            var message = this._logWithColor
-                ? this._constructColorLogMessage(logLevel, color, format, args)
-                : this._constructNonColorLogMessage(logLevel, format, args);
+            var result = this._logWithColor
+                ? this._constructColorLogMessage(logLevel, color, messageGetter)
+                : this._constructNonColorLogMessage(logLevel, messageGetter);
 
             if (logLevel == LogLevel.Error)
-                Console.Error.Write(message);
+                Console.Error.Write(result);
             else
-                Console.Out.Write(message);
+                Console.Out.Write(result);
         }
     }
 
-    private void _queueOrLog(LogLevel logLevel, Logger.LogColor color, string format, params object[] args)
+    private void _queueOrLog(LogLevel logLevel, Logger.LogColor color, Func<string> messageGetter)
     {
         if (this._disposed) throw new ObjectDisposedException(this.GetType().Name);
 
 #if CONCURRENT_LOGGING_ENABLED
         Task.Factory.StartNew(() =>
         {
-            try { this._writeLog(logLevel, color, format, args); }
+            try { this._writeLog(logLevel, color, messageGetter); }
             catch (Exception ex)
             {
 #if DEBUG
@@ -615,7 +642,7 @@ public class Logger : ILogger
             }
         });
 #else
-        try { this._writeLog(logLevel, color, format, args); }
+        try { this._writeLog(logLevel, color, messageGetter); }
         catch (Exception ex)
         {
 #if DEBUG
@@ -630,15 +657,14 @@ public class Logger : ILogger
     /// </summary>
     /// <param name="logLevel">The log level.</param>
     /// <param name="color">The color.</param>
-    /// <param name="format">The format.</param>
-    /// <param name="args">The format arga.</param>
-    protected virtual void _writeLog(LogLevel logLevel, Logger.LogColor color, string format, params object[] args)
+    /// <param name="messageGetter">The message getter.</param>
+    protected virtual void _writeLog(LogLevel logLevel, Logger.LogColor color, Func<string> messageGetter)
     {
-        this._writeLogToConsole(logLevel, color, format, args);
-        this._writeLogToFileSystem(logLevel, format, args);
+        this._writeLogToConsole(logLevel, color, messageGetter);
+        this._writeLogToFileSystem(logLevel, messageGetter);
     }
 
-    private bool _checkLogLevel(LogLevel logLevel) => this._logLevel >= logLevel;
+    private bool _checkLogLevel(LogLevel logLevel) => this._logLevelGetter() >= logLevel;
     private void _createFileStream() => this._lockedFileWriteStream ??= new(this._fullyQualifiedFileName);
     private void _closeFileStream()
     {
@@ -692,7 +718,7 @@ public class Logger : ILogger
     /// </summary>
     public static void TryClearLocalLog()
     {
-        Logger.Singleton.Log("Try clear local log files...");
+        Logger.Singleton.Information("Try clear local log files...");
 
         var fileSystemLoggers = Logger._loggers.Where(logger => logger._logToFileSystem == true);
 
@@ -735,7 +761,7 @@ public class Logger : ILogger
     /// </summary>
     public static void TryClearAllLoggers()
     {
-        Logger.Singleton.Log("Try clear all loggers...");
+        Logger.Singleton.Information("Try clear all loggers...");
 
         try
         {
@@ -756,7 +782,7 @@ public class Logger : ILogger
     /// Construct a new instance of <see cref="Logger"/>.
     /// </summary>
     /// <param name="name">The name of the logger.</param>
-    /// <param name="logLevel">The log level of the logger.</param>
+    /// <param name="logLevelGetter">The log level of the logger.</param>
     /// <param name="logToFileSystem">If true, the logger will log to the file system.</param>
     /// <param name="logToConsole">If true, the logger will log to the console.</param>
     /// <param name="cutLogPrefix">If true, the logger will cut the log prefix.</param>
@@ -771,7 +797,7 @@ public class Logger : ILogger
     // ReSharper disable once MemberCanBeProtected.Global
     public Logger(
         string name,
-        LogLevel logLevel = LogLevel.Information,
+        Func<LogLevel> logLevelGetter = default,
         bool logToFileSystem = true,
         bool logToConsole = true,
         bool cutLogPrefix = true,
@@ -793,8 +819,10 @@ public class Logger : ILogger
         lock (Logger._loggers)
             Logger._loggers.Add(this);
 
+        if (logLevelGetter == default) logLevelGetter = () => LogLevel.Information;
+
         this._name = name;
-        this._logLevel = logLevel;
+        this._logLevelGetter = logLevelGetter;
         this._logToFileSystem = logToFileSystem;
         this._logToConsole = logToConsole;
         this._cutLogPrefix = cutLogPrefix;
@@ -821,7 +849,7 @@ public class Logger : ILogger
             lock (Logger._singletonLock)
                 return Logger._singleton ??= new(
                     _defaultLoggerName,
-                    _defaultLogLevel
+                    () => _defaultLogLevel
                 );
         }
     }
@@ -836,7 +864,7 @@ public class Logger : ILogger
             lock (Logger._noopSingletonLock)
                 return Logger._noopSingleton ??= new(
                    "_noop",
-                   LogLevel.None,
+                   () => LogLevel.None,
                    false,
                    false
                );
@@ -873,12 +901,13 @@ public class Logger : ILogger
     /// <inheritdoc cref="ILogger.LogLevel"/>
     public LogLevel LogLevel
     {
-        get => this._logLevel;
+        get => this._logLevelGetter();
         set
         {
             if (this._disposed) throw new ObjectDisposedException(this.GetType().Name);
+            if (this._logLevelGetter() == value) return;
 
-            this._logLevel = value;
+            this._logLevelGetter = () => value;
         }
     }
 
@@ -972,36 +1001,13 @@ public class Logger : ILogger
     // Public Log Methods
     ////////////////////////////////////////////////////////////////////////////////
 
-    /// <inheritdoc cref="ILogger.Log(string, object[])"/>
-    public void Log(string format, params object[] args)
-    {
-        if (string.IsNullOrEmpty(format)) throw new ArgumentNullException(nameof(format));
-        if (args == null) throw new ArgumentNullException(nameof(args));
-
-        if (!this._checkLogLevel(LogLevel.Information)) return;
-
-        this._queueOrLog(LogLevel.Information, Logger.LogColor.BrightWhite, format, args);
-    }
-
-    /// <inheritdoc cref="ILogger.Log(Func{string})"/>
-    public void Log(Func<string> messageGetter)
-    {
-        if (messageGetter == null) throw new ArgumentNullException(nameof(messageGetter));
-
-        if (!this._checkLogLevel(LogLevel.Information)) return;
-
-        this._queueOrLog(LogLevel.Information, Logger.LogColor.BrightWhite, messageGetter());
-    }
-
     /// <inheritdoc cref="ILogger.Warning(string, object[])"/>
     public void Warning(string format, params object[] args)
     {
         if (string.IsNullOrEmpty(format)) throw new ArgumentNullException(nameof(format));
         if (args == null) throw new ArgumentNullException(nameof(args));
 
-        if (!this._checkLogLevel(LogLevel.Warning)) return;
-
-        this._queueOrLog(LogLevel.Warning, Logger.LogColor.BrightYellow, format, args);
+        this.Warning(() => Logger._format(format, args));
     }
 
     /// <inheritdoc cref="ILogger.Warning(Func{string})"/>
@@ -1011,36 +1017,28 @@ public class Logger : ILogger
 
         if (!this._checkLogLevel(LogLevel.Warning)) return;
 
-        this._queueOrLog(LogLevel.Warning, Logger.LogColor.BrightYellow, messageGetter());
+        this._queueOrLog(LogLevel.Warning, Logger.LogColor.BrightYellow, messageGetter);
     }
 
-    /// <inheritdoc cref="ILogger.Trace(string, object[])"/>
-    public void Trace(string format, params object[] args)
+    /// <inheritdoc cref="ILogger.Verbose(string, object[])"/>
+    public void Verbose(string format, params object[] args)
     {
         if (string.IsNullOrEmpty(format)) throw new ArgumentNullException(nameof(format));
         if (args == null) throw new ArgumentNullException(nameof(args));
 
-        if (!this._checkLogLevel(LogLevel.Trace)) return;
+        if (!this._checkLogLevel(LogLevel.Verbose)) return;
 
-        var formattedMessage = args is { Length: 0 }
-            ? format
-            : string.Format(format, args);
-
-        var message = string.Format("{0}\n{1}", formattedMessage, Environment.StackTrace);
-
-        this._queueOrLog(LogLevel.Trace, Logger.LogColor.BrightMagenta, message);
+        this.Verbose(() => Logger._format(format, args));
     }
 
-    /// <inheritdoc cref="ILogger.Trace(Func{string})"/>
-    public void Trace(Func<string> messageGetter)
+    /// <inheritdoc cref="ILogger.Verbose(Func{string})"/>
+    public void Verbose(Func<string> messageGetter)
     {
         if (messageGetter == null) throw new ArgumentNullException(nameof(messageGetter));
 
-        if (!this._checkLogLevel(LogLevel.Trace)) return;
+        if (!this._checkLogLevel(LogLevel.Verbose)) return;
 
-        var message = string.Format("{0}\n{1}", messageGetter(), Environment.StackTrace);
-
-        this._queueOrLog(LogLevel.Trace, Logger.LogColor.BrightMagenta, message);
+        this._queueOrLog(LogLevel.Verbose, Logger.LogColor.BrightMagenta, messageGetter);
     }
 
     /// <inheritdoc cref="ILogger.Debug(string, object[])"/>
@@ -1049,9 +1047,7 @@ public class Logger : ILogger
         if (string.IsNullOrEmpty(format)) throw new ArgumentNullException(nameof(format));
         if (args == null) throw new ArgumentNullException(nameof(args));
 
-        if (!this._checkLogLevel(LogLevel.Debug)) return;
-
-        this._queueOrLog(LogLevel.Debug, Logger.LogColor.BrightMagenta, format, args);
+        this.Debug(() => Logger._format(format, args));
     }
 
     /// <inheritdoc cref="ILogger.Debug(Func{string})"/>
@@ -1061,7 +1057,7 @@ public class Logger : ILogger
 
         if (!this._checkLogLevel(LogLevel.Debug)) return;
 
-        this._queueOrLog(LogLevel.Debug, Logger.LogColor.BrightMagenta, messageGetter());
+        this._queueOrLog(LogLevel.Debug, Logger.LogColor.BrightMagenta, messageGetter);
     }
 
     /// <inheritdoc cref="ILogger.Information(string, object[])"/>
@@ -1070,9 +1066,7 @@ public class Logger : ILogger
         if (string.IsNullOrEmpty(format)) throw new ArgumentNullException(nameof(format));
         if (args == null) throw new ArgumentNullException(nameof(args));
 
-        if (!this._checkLogLevel(LogLevel.Information)) return;
-
-        this._queueOrLog(LogLevel.Information, Logger.LogColor.BrightBlue, format, args);
+        this.Information(() => Logger._format(format, args));
     }
 
     /// <inheritdoc cref="ILogger.Information(Func{string})"/>
@@ -1082,7 +1076,7 @@ public class Logger : ILogger
 
         if (!this._checkLogLevel(LogLevel.Information)) return;
 
-        this._queueOrLog(LogLevel.Information, Logger.LogColor.BrightBlue, messageGetter());
+        this._queueOrLog(LogLevel.Information, Logger.LogColor.BrightBlue, messageGetter);
     }
 
     /// <inheritdoc cref="ILogger.Error(Exception)"/>
@@ -1090,9 +1084,16 @@ public class Logger : ILogger
     {
         if (ex == null) throw new ArgumentNullException(nameof(ex));
 
-        if (!this._checkLogLevel(LogLevel.Error)) return;
+        this.Error(() => ex.ToString());
+    }
 
-        this._queueOrLog(LogLevel.Error, Logger.LogColor.BrightRed, ex.ToString());
+    /// <inheritdoc cref="ILogger.Error(Exception, string)"/>
+    public void Error(Exception ex, string message)
+    {
+        if (ex == null) throw new ArgumentNullException(nameof(ex));
+        if (string.IsNullOrEmpty(message)) throw new ArgumentNullException(nameof(message));
+
+        this.Error(() => string.Format("{0}\nTrace Back: {1}", message, ex.ToString()));
     }
 
     /// <inheritdoc cref="ILogger.Error(string, object[])"/>
@@ -1101,9 +1102,7 @@ public class Logger : ILogger
         if (format == null) throw new ArgumentNullException(nameof(format));
         if (args == null) throw new ArgumentNullException(nameof(args));
 
-        if (!this._checkLogLevel(LogLevel.Error)) return;
-
-        this._queueOrLog(LogLevel.Error, Logger.LogColor.BrightRed, format, args);
+        this.Error(() => Logger._format(format, args));
     }
 
     /// <inheritdoc cref="ILogger.Error(Func{string})"/>
@@ -1113,7 +1112,7 @@ public class Logger : ILogger
 
         if (!this._checkLogLevel(LogLevel.Error)) return;
 
-        this._queueOrLog(LogLevel.Error, Logger.LogColor.BrightRed, messageGetter());
+        this._queueOrLog(LogLevel.Error, Logger.LogColor.BrightRed, messageGetter);
     }
 
     /// <inheritdoc cref="IDisposable.Dispose"/>
@@ -1128,6 +1127,7 @@ public class Logger : ILogger
 
         lock (Logger._loggers)
             Logger._loggers.Remove(this);
+
         this._closeFileStream();
 
         this._disposed = true;

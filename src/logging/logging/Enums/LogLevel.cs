@@ -1,38 +1,37 @@
-﻿namespace Logging
+﻿namespace Logging;
+
+/// <summary>
+/// Represents the logging level.
+/// </summary>
+public enum LogLevel
 {
     /// <summary>
-    /// Represents the logging level.
+    /// NoOp log, no log messages are ever written.
     /// </summary>
-    public enum LogLevel
-    {
-        /// <summary>
-        /// No-Op
-        /// </summary>
-        None,
+    None,
 
-        /// <summary>
-        /// Error messagw
-        /// </summary>
-        Error,
+    /// <summary>
+    /// Only critical error messages are written.
+    /// </summary>
+    Error,
 
-        /// <summary>
-        /// Warn
-        /// </summary>
-        Warning,
+    /// <summary>
+    /// Error messages as well as warning type messages are written.
+    /// </summary>
+    Warning,
 
-        /// <summary>
-        /// Info
-        /// </summary>
-        Information,
+    /// <summary>
+    /// More chatty information based messages are written as well.
+    /// </summary>
+    Information,
 
-        /// <summary>
-        /// Debug
-        /// </summary>
-        Debug,
+    /// <summary>
+    /// Verbose logging information is written.
+    /// </summary>
+    Debug,
 
-        /// <summary>
-        /// Trace
-        /// </summary>
-        Trace
-    }
+    /// <summary>
+    /// Extremely verbose and possibly spammy logging messages are written.
+    /// </summary>
+    Verbose
 }
