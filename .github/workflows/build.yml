@@ -78,7 +78,7 @@ jobs:
           retention-days: 1
           name: nuget-packages
           path: |
-            ./dist/*.nupkg
+            ./dist/*
 
   # Upload to NuGet
   upload:
