@@ -104,6 +104,6 @@ jobs:
           path: dist
 
       - name: Publish NuGet Packages
-        run: >
+        run: |
           dotnet nuget push dist/*.nupkg --skip-duplicate --source ${{ vars.NUGET_SOURCE }} --api-key ${{ secrets.NUGET_API_KEY }}
           dotnet nuget push dist/*.snupkg --skip-duplicate --source ${{ vars.NUGET_SOURCE }} --api-key ${{ secrets.NUGET_API_KEY }} 
