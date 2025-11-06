@@ -95,7 +95,12 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     /// <inheritdoc cref="BaseProvider.SetRawValue{T}(string, T)"/>
     protected override void SetRawValue<T>(string variable, T value)
     {
-        if (_client == null) return;
+        if (_client == null)
+        {
+            base.SetRawValue(variable, value);
+
+            return;
+        }
 
         _logger?.Information("VaultProvider: Set value in vault at path '{0}/{1}/{2}'", Mount, Path, variable);
 
@@ -174,7 +179,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
 
         SetLogger(logger);
 
-        if (periodicRefresh)
+        if (periodicRefresh && _client != null) // Periodic refresh only needed in Vault environments
         {
             TryInitializeGlobalRefreshThread();
 

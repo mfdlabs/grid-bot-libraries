@@ -11,8 +11,7 @@
   <Target Name="AddGitMetadaAssemblyAttributes"
     BeforeTargets="GetAssemblyAttributes">
 
-    <!--Executes
-    the Git Commands to get the Hash and Branch-->
+    <!--Executes the Git Commands to get the Hash and Branch-->
     <Exec Command="git rev-parse HEAD" ConsoleToMSBuild="true"
       StandardOutputImportance="low" IgnoreExitCode="true" Condition=" '$(CommitHash)' == '' " WorkingDirectory="$(RootDirectory)">
       <Output TaskParameter="ConsoleOutput" PropertyName="CommitHash" />
@@ -38,7 +37,7 @@
     <Copyright>Copyright © $(Company) $([System.DateTime]::Now.ToString(`yyyy`)). All rights reserved.</Copyright>
     <Authors>$(Company);Nikita Petko</Authors>
 
-    <VersionPrefix>1.1.1</VersionPrefix>
+    <VersionPrefix>1.1.2</VersionPrefix>
 
     <RepositoryUrl>https://github.com/mfdlabs/grid-bot-libraries</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
