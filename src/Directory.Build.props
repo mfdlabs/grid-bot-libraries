@@ -6,8 +6,6 @@
   <PropertyGroup Label="LibStandard">
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>10</LangVersion>
-
-    <Configurations>debug;release</Configurations>
   </PropertyGroup>
 
   <Target Name="AddGitMetadaAssemblyAttributes"
@@ -40,7 +38,7 @@
     <Copyright>Copyright © $(Company) $([System.DateTime]::Now.ToString(`yyyy`)). All rights reserved.</Copyright>
     <Authors>$(Company);Nikita Petko</Authors>
 
-    <VersionPrefix>1.0.9</VersionPrefix>
+    <VersionPrefix>1.1.0</VersionPrefix>
 
     <RepositoryUrl>https://github.com/mfdlabs/grid-bot-libraries</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -56,11 +54,14 @@
   </PropertyGroup>
 
   <PropertyGroup Label="PackageProperties" Condition="'$(IsTestProject)' != 'true'">
-    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
-    <IncludeContentInPack>true</IncludeContentInPack>
+    <DebugSymbols>true</DebugSymbols>
+    <EmbedAllSources>true</EmbedAllSources>
+    <DebugType>portable</DebugType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
     <PackageId>mfdlabs.$(MSBuildProjectName)</PackageId>
   </PropertyGroup>

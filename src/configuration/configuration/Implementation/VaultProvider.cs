@@ -16,8 +16,8 @@ using VaultSharp.Core;
 using Vault;
 using Logging;
 
+using Threading;
 using Threading.Extensions;
-
 
 /// <summary>
 /// Implementation for <see cref="BaseProvider"/> via Vault.
@@ -52,7 +52,7 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     protected IDictionary<string, object> _CachedValues = new Dictionary<string, object>();
 
     private static readonly ManualResetEvent _refreshRequestEvent = new(false);
-    private static readonly Thread _refreshThread;
+    private static OnceFlag _refreshAheadOnceFlag = new();
     private static readonly IVaultClient _client = VaultClientFactory.Singleton.GetClient();
     private static readonly ILogger _staticLogger = Logger.Singleton;
 
@@ -70,20 +70,17 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     /// <inheritdoc cref="INotifyPropertyChanged.PropertyChanged"/>
     public override event PropertyChangedEventHandler PropertyChanged;
 
-    /// <summary>
-    /// Static constructor for <see cref="VaultProvider"/>
-    /// </summary>
-    static VaultProvider()
+    private static void TryInitializeGlobalRefreshThread()
     {
-        _refreshThread = new Thread(RefreshThread)
-        {
-            IsBackground = true,
-            Name = "VaultProvider Refresh Thread"
-        };
+        Call.Once(ref _refreshAheadOnceFlag, () => {
+            new Thread(RefreshThread)
+            {
+                IsBackground = true,
+                Name = "VaultProvider Refresh Thread"
+            }.Start();
 
-        _refreshThread.Start();
-
-        _staticLogger?.Debug("VaultProvider: Started refresh thread!");
+            _staticLogger?.Debug("VaultProvider: Started refresh thread!");
+        });
     }
 
     /// <summary>
@@ -179,6 +176,8 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
 
         if (periodicRefresh)
         {
+            TryInitializeGlobalRefreshThread();
+
             _logger?.Debug("VaultProvider: Setup for '{0}/{1}' to refresh every '{2}' interval!", Mount, Path, RefreshInterval);
 
             if (_providers.TryGetValue(GetType().ToString(), out _))
@@ -342,11 +341,12 @@ public abstract class VaultProvider : EnvironmentProvider, IVaultProvider
     /// <inheritdoc cref="BaseProvider.GetRawValue(string, out string)"/>
     protected override bool GetRawValue(string key, out string value)
     {
+        if (base.GetRawValue(key, out value)) return true; // ENV is priority;
+
         object v;
 
         lock (_CachedValues)
-            if (!_CachedValues.TryGetValue(key, out v))
-                return base.GetRawValue(key, out value);
+            if (!_CachedValues.TryGetValue(key, out v)) return false;
 
         if (v is JsonElement element)
             value = element.GetString();

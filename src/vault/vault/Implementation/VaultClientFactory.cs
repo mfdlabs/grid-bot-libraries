@@ -27,8 +27,6 @@ public class VaultClientFactory : IVaultClientFactory
     private const char _appRoleSplit = ':';
     private const string _defaultAppRoleMountPath = "approle";
 
-    private static readonly TimeSpan _defaultTokenRefreshInterval = TimeSpan.FromHours(.75);
-
     private static readonly object _instanceLock = new();
     private static VaultClientFactory _instance = new();
 
@@ -79,6 +77,9 @@ public class VaultClientFactory : IVaultClientFactory
 
         lock (_globalClientLock)
         {
+            if (_cachedGlobalClient != null)
+                return _cachedGlobalClient;
+
             var vaultAddr = Environment.GetEnvironmentVariable(_vaultAddressEnvVar);
             var vaultCredential = Environment.GetEnvironmentVariable(_vaultCredentialEnvVar)
                                ?? Environment.GetEnvironmentVariable(_vaultTokenEnvVar);
@@ -107,9 +108,15 @@ public class VaultClientFactory : IVaultClientFactory
 
     private static void RefreshToken(IVaultClient client)
     {
+        var token = client.V1.Auth.Token.LookupSelfAsync().Sync()?.Data;
+
         // Check if the client has a lease
-        if (client.V1.Auth.Token.LookupSelfAsync().Sync()?.Data?.Renewable != true)
+        if (token?.Renewable != true)
             return;
+
+        // Get the lease
+        var lease = token?.TimeToLive;
+        if (lease == null || lease == 0) return; // If it doesn't need to be refreshed
 
         Logger.Singleton.Debug("Setting up token refresh thread for vault client!");
 
@@ -117,7 +124,7 @@ public class VaultClientFactory : IVaultClientFactory
         {
             client.V1.Auth.Token.RenewSelfAsync().Wait();
 
-            Thread.Sleep(_defaultTokenRefreshInterval);
+            Thread.Sleep(TimeSpan.FromSeconds(lease.Value));
         }
     }
 }
